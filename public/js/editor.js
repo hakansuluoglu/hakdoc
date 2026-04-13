@@ -160,8 +160,79 @@ const highlightExtension = {
   }
 };
 
+/* ─── Footnotes State ──────────────── */
+let currentFootnotes = [];
+
+const footnoteRefExtension = {
+  name: 'footnoteRef',
+  level: 'inline',
+  start(src) { return src.indexOf('[^'); },
+  tokenizer(src) {
+    const match = src.match(/^\[\^([^\]]+)\]/);
+    if (match) {
+      return {
+        type: 'footnoteRef',
+        raw: match[0],
+        id: match[1]
+      };
+    }
+  },
+  renderer(token) {
+    return `<sup class="fn-ref" id="fnref:${token.id}"><a href="#fn:${token.id}">${token.id}</a></sup>`;
+  }
+};
+
+const footnoteDefExtension = {
+  name: 'footnoteDef',
+  level: 'block',
+  start(src) { return src.indexOf('[^'); },
+  tokenizer(src) {
+    const match = src.match(/^\[\^([^\]]+)\]:\s*(.*)/);
+    if (match) {
+      const id = match[1];
+      const content = match[2];
+      currentFootnotes.push({ id, content });
+      return {
+        type: 'footnoteDef',
+        raw: match[0],
+        id,
+        content
+      };
+    }
+  },
+  renderer(token) {
+    // Collect but don't render in place
+    return '';
+  }
+};
+
 export function initMarked() {
-  marked.use({ extensions: [highlightExtension] });
+  marked.use({ 
+    extensions: [highlightExtension, footnoteRefExtension, footnoteDefExtension],
+    hooks: {
+      preprocess(src) {
+        currentFootnotes = []; // Reset per parse
+        return src;
+      },
+      postprocess(html) {
+        if (currentFootnotes.length === 0) return html;
+        const fnList = currentFootnotes.map(fn => 
+          `<li id="fn:${fn.id}" class="fn-item">
+            <span class="fn-content">${fn.content}</span>
+            <a href="#fnref:${fn.id}" class="fn-back" title="Geri dön">↩</a>
+          </li>`
+        ).join('\n');
+        return html + `
+          <hr class="fn-sep">
+          <section class="footnotes">
+            <ol>
+              ${fnList}
+            </ol>
+          </section>
+        `;
+      }
+    }
+  });
 
   marked.setOptions({
     highlight: function (code, lang) {
@@ -625,8 +696,12 @@ export function insertFormat(type) {
       before = '=='; after = '=='; newCursorPos = start + 2;
       break;
     case 'footnote': {
-      const fnAfter = '[^1]';
-      editor.value = text.substring(0, start) + selected + fnAfter + text.substring(end) + '\n\n[^1]: ';
+      const fnMatches = text.match(/\[\^(\d+)\]/g) || [];
+      const ids = fnMatches.map(m => parseInt(m.match(/\d+/)[0]));
+      const nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
+      const fnLabel = `[^${nextId}]`;
+      
+      editor.value = text.substring(0, start) + selected + fnLabel + text.substring(end) + `\n\n${fnLabel}: `;
       editor.focus();
       const footnotePos = editor.value.length;
       editor.setSelectionRange(footnotePos, footnotePos);

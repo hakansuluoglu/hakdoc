@@ -1103,3 +1103,40 @@ body {
   font-size: 64px;
   margin-bottom: 16px;
 }
+
+/* ─── Footnotes ────────────────────────────────────────────────────── */
+.fn-ref {
+  vertical-align: super;
+  font-size: 0.75em;
+  margin: 0 2px;
+}
+.fn-ref a {
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0 2px;
+  color: var(--accent);
+}
+.fn-sep {
+  margin-top: 40px !important;
+  opacity: 0.3;
+}
+.footnotes {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+.footnotes ol {
+  padding-left: 20px;
+}
+.fn-item {
+  margin-bottom: 8px;
+}
+.fn-back {
+  text-decoration: none;
+  margin-left: 4px;
+  color: var(--accent);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.fn-back:hover {
+  opacity: 1;
+}
