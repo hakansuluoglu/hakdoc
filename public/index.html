@@ -98,6 +98,15 @@
     </div>
   </div>
 
+  <div id="tab-context-menu" style="display:none">
+    <button onclick="tabCtxClose()"><i class="fas fa-times"></i> Kapat</button>
+    <div class="ctx-sep"></div>
+    <button onclick="tabCtxCloseOthers()"><i class="fas fa-arrows-alt-h"></i> Diğerlerini Kapat</button>
+    <button onclick="tabCtxCloseRight()"><i class="fas fa-arrow-right"></i> Sağdakileri Kapat</button>
+    <div class="ctx-sep"></div>
+    <button onclick="tabCtxCloseAll()" class="ctx-danger"><i class="fas fa-times-circle"></i> Tümünü Kapat</button>
+  </div>
+
   <div id="context-menu" style="display:none">
     <button id="ctx-new-file" onclick="ctxNewFile()"><i class="fas fa-file-circle-plus"></i> Yeni Dosya</button>
     <button id="ctx-new-folder" onclick="ctxNewFolder()"><i class="fas fa-folder-plus"></i> Yeni Klasör</button>

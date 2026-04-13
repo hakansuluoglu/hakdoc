@@ -50,9 +50,73 @@ export function renderTabs() {
     div.onclick = () => {
       if (tab.path !== activeTabPath) loadFile(tab.path);
     };
+
+    div.oncontextmenu = (e) => {
+      e.preventDefault();
+      showTabContextMenu(e, tab.path);
+    };
     
     tabsList.appendChild(div);
   });
+}
+
+let tabCtxPath = null;
+function showTabContextMenu(e, path) {
+  tabCtxPath = path;
+  const menu = document.getElementById('tab-context-menu');
+  menu.style.display = 'block';
+
+  const menuRect = menu.getBoundingClientRect();
+  let x = e.clientX;
+  let y = e.clientY;
+  if (x + menuRect.width > window.innerWidth) x = window.innerWidth - menuRect.width - 4;
+  if (y + menuRect.height > window.innerHeight) y = window.innerHeight - menuRect.height - 4;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+
+globalThis.tabCtxClose = () => {
+  if (tabCtxPath) closeTab(tabCtxPath);
+  hideTabContextMenu();
+};
+
+globalThis.tabCtxCloseOthers = () => {
+  if (!tabCtxPath) return;
+  const tabs = openTabs.filter(t => t.path === tabCtxPath);
+  setOpenTabs(tabs);
+  if (activeTabPath !== tabCtxPath) {
+    loadFile(tabCtxPath);
+  } else {
+    renderTabs();
+  }
+  hideTabContextMenu();
+};
+
+globalThis.tabCtxCloseRight = () => {
+  if (!tabCtxPath) return;
+  const idx = openTabs.findIndex(t => t.path === tabCtxPath);
+  if (idx === -1) return;
+  const tabs = openTabs.slice(0, idx + 1);
+  setOpenTabs(tabs);
+  
+  const currentIdxInNew = tabs.findIndex(t => t.path === activeTabPath);
+  if (currentIdxInNew === -1) {
+    loadFile(tabCtxPath);
+  } else {
+    renderTabs();
+  }
+  hideTabContextMenu();
+};
+
+globalThis.tabCtxCloseAll = () => {
+  setOpenTabs([]);
+  setActiveTabPath(null);
+  renderTabs();
+  hideTabContextMenu();
+};
+
+function hideTabContextMenu() {
+  document.getElementById('tab-context-menu').style.display = 'none';
 }
 
 globalThis.closeTab = function(path) {

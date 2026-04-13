@@ -78,6 +78,10 @@ function setupKeyboardShortcuts() {
       e.preventDefault();
       if (isEditing) saveFile();
     }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+      e.preventDefault();
+      if (currentFilePath) toggleEdit();
+    }
     if (e.key === 'Escape') {
       if (document.getElementById('modal-overlay').style.display !== 'none') {
         modalCancel();

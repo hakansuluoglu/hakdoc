@@ -689,7 +689,8 @@ body {
   }
 }
 
-#context-menu {
+#context-menu,
+#tab-context-menu {
   position: fixed;
   z-index: 2000;
   background: var(--bg-secondary);
@@ -700,7 +701,8 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-#context-menu button {
+#context-menu button,
+#tab-context-menu button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -715,21 +717,25 @@ body {
   text-align: left;
 }
 
-#context-menu button:hover {
+#context-menu button:hover,
+#tab-context-menu button:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-#context-menu button.ctx-danger {
+#context-menu button.ctx-danger,
+#tab-context-menu button.ctx-danger {
   color: var(--red);
 }
 
-#context-menu button.ctx-danger:hover {
+#context-menu button.ctx-danger:hover,
+#tab-context-menu button.ctx-danger:hover {
   background: rgba(248, 81, 73, 0.1);
   color: var(--red);
 }
 
-#context-menu .ctx-sep {
+#context-menu .ctx-sep,
+#tab-context-menu .ctx-sep {
   height: 1px;
   background: var(--border);
   margin: 4px 0;

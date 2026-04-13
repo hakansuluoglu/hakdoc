@@ -102,10 +102,14 @@ export function showContextMenu(e, itemPath, itemType) {
 export function setupContextMenuClose() {
   document.addEventListener('click', () => {
     document.getElementById('context-menu').style.display = 'none';
+    document.getElementById('tab-context-menu').style.display = 'none';
   });
   document.addEventListener('contextmenu', (e) => {
     if (!e.target.closest('#file-tree')) {
       document.getElementById('context-menu').style.display = 'none';
+    }
+    if (!e.target.closest('.tab-item')) {
+      document.getElementById('tab-context-menu').style.display = 'none';
     }
   });
 }
