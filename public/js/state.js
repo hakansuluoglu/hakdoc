@@ -1,5 +1,9 @@
 // ─── Global Application State ───────────────────────────────────────
-export let currentFilePath = null;
+export let openTabs = []; // Array of {path, name}
+export let activeTabPath = null;
+export let currentFilePath = null; // Alias for activeTabPath for backwards compatibility
+export let sidebarCollapsed = false;
+
 export let isEditing = false;
 export let modalCallback = null;
 export let ctxTargetPath = null;
@@ -10,10 +14,36 @@ export let moveTreeData = null;
 export let expandedFolders = new Set();
 
 // ─── State Setters ──────────────────────────────────────────────────
-export function setCurrentFilePath(val) {
-  currentFilePath = val;
-  if (val) {
-    localStorage.setItem('docwebapp:lastFile', val);
+export function setSidebarCollapsed(val) {
+  sidebarCollapsed = val;
+  if(val) localStorage.setItem('docwebapp:sidebar', '1');
+  else localStorage.removeItem('docwebapp:sidebar');
+}
+
+export function restoreSidebarState() {
+  sidebarCollapsed = localStorage.getItem('docwebapp:sidebar') === '1';
+}
+
+export function setOpenTabs(tabs) {
+  openTabs = tabs;
+  localStorage.setItem('docwebapp:openTabs', JSON.stringify(tabs));
+}
+
+export function restoreOpenTabs() {
+  try {
+    const raw = localStorage.getItem('docwebapp:openTabs');
+    if(raw) openTabs = JSON.parse(raw);
+    else openTabs = [];
+  } catch(e) {
+    openTabs = [];
+  }
+}
+
+export function setActiveTabPath(path) {
+  activeTabPath = path;
+  currentFilePath = path;
+  if (path) {
+    localStorage.setItem('docwebapp:lastFile', path);
   } else {
     localStorage.removeItem('docwebapp:lastFile');
   }

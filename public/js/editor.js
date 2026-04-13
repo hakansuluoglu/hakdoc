@@ -1,10 +1,80 @@
 // ─── Editor Module ──────────────────────────────────────────────────
 import {
-  currentFilePath, isEditing, setCurrentFilePath, setIsEditing,
-  saveDraft, loadDraft, clearDraft
+  currentFilePath, isEditing, setActiveTabPath, setIsEditing,
+  saveDraft, loadDraft, clearDraft, hasDraft, openTabs, activeTabPath, setOpenTabs
 } from './state.js';
 import { escapeHtml, debounce, showToast } from './utils.js';
 import { refreshTree, highlightFileInTree } from './tree.js';
+
+// ─── Tabs Management ────────────────────────────────────────────────
+export function renderTabs() {
+  const container = document.getElementById('tabs-container');
+  const tabsList = container.querySelector('.tabs-list');
+  if (!tabsList) return;
+
+  if (openTabs.length === 0) {
+    container.style.display = 'none';
+    document.getElementById('editor-view').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+    setActiveTabPath(null);
+    return;
+  }
+
+  container.style.display = 'flex';
+  tabsList.innerHTML = '';
+  
+  openTabs.forEach(tab => {
+    const isUnsaved = hasDraft(tab.path);
+    const div = document.createElement('div');
+    div.className = 'tab-item' + (tab.path === activeTabPath ? ' active' : '');
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = tab.name;
+    div.appendChild(nameSpan);
+
+    if (isUnsaved) {
+      const dot = document.createElement('span');
+      dot.className = 'tab-unsaved';
+      div.appendChild(dot);
+    }
+
+    const closeBtn = document.createElement('i');
+    closeBtn.className = 'fas fa-times tab-close';
+    closeBtn.title = 'Kapat';
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      closeTab(tab.path);
+    };
+    div.appendChild(closeBtn);
+
+    div.onclick = () => {
+      if (tab.path !== activeTabPath) loadFile(tab.path);
+    };
+    
+    tabsList.appendChild(div);
+  });
+}
+
+globalThis.closeTab = function(path) {
+  let tabs = [...openTabs];
+  const idx = tabs.findIndex(t => t.path === path);
+  if (idx === -1) return;
+  
+  tabs.splice(idx, 1);
+  setOpenTabs(tabs);
+  
+  if (path === activeTabPath) {
+    if (tabs.length > 0) {
+      const nextTab = tabs[Math.min(idx, tabs.length - 1)];
+      loadFile(nextTab.path);
+    } else {
+      renderTabs();
+    }
+  } else {
+    renderTabs();
+  }
+};
+
 
 // ─── Marked.js Configuration ────────────────────────────────────────
 const highlightExtension = {
@@ -133,22 +203,54 @@ function updateUnsavedIndicator(hasUnsaved) {
 // ─── File Loading ───────────────────────────────────────────────────
 export async function loadFile(filePath) {
   try {
-    const res = await fetch('/api/file?path=' + encodeURIComponent(filePath));
-    if (!res.ok) throw new Error('File not found');
-    const data = await res.json();
+    const ext = filePath.split('.').pop().toLowerCase();
+    const isPDF = ext === 'pdf';
+    const fileName = filePath.split('/').pop('');
 
-    setCurrentFilePath(filePath);
+    // update tabs
+    let tabs = [...openTabs];
+    if (!tabs.find(t => t.path === filePath)) {
+      tabs.push({ path: filePath, name: fileName });
+      setOpenTabs(tabs);
+    }
+    setActiveTabPath(filePath);
+    renderTabs();
+
     setIsEditing(false);
 
     document.getElementById('empty-state').style.display = 'none';
     document.getElementById('editor-view').style.display = 'flex';
     document.getElementById('markdown-editor').style.display = 'none';
     document.getElementById('format-toolbar').style.display = 'none';
-    document.getElementById('markdown-preview').style.display = 'block';
-    document.getElementById('btn-edit').classList.remove('active');
+    const btnEdit = document.getElementById('btn-edit');
+    if (btnEdit) {
+        btnEdit.classList.remove('active');
+        btnEdit.style.display = 'none';
+    }
     document.getElementById('btn-save').style.display = 'none';
+    
+    document.getElementById('file-name').textContent = fileName;
+    document.getElementById('file-path-display').textContent = filePath;
+    updateUnsavedIndicator(false);
+    
+    document.getElementById('markdown-preview').style.display = 'none';
+    document.getElementById('pdf-viewer').style.display = 'none';
 
-    const ext = filePath.split('.').pop().toLowerCase();
+    if (isPDF) {
+      const pdfViewer = document.getElementById('pdf-viewer');
+      pdfViewer.style.display = 'block';
+      let rawUrl = '/raw/' + filePath.split('/').map(encodeURIComponent).join('/');
+      pdfViewer.src = rawUrl;
+      highlightFileInTree(filePath);
+      return;
+    }
+    
+    document.getElementById('markdown-preview').style.display = 'block';
+
+    const res = await fetch('/api/file?path=' + encodeURIComponent(filePath));
+    if (!res.ok) throw new Error('File not found');
+    const data = await res.json();
+
     const isMarkdown = ['md', 'markdown'].includes(ext);
 
     document.getElementById('file-name').textContent = data.name;
@@ -276,18 +378,92 @@ export async function saveFile() {
   }
 }
 
-// ─── Delete Current File ────────────────────────────────────────────
 export function deleteCurrent() {
   if (!currentFilePath) return;
   if (!confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
   fetch('/api/file?path=' + encodeURIComponent(currentFilePath), { method: 'DELETE' })
     .then(() => {
       clearDraft(currentFilePath);
-      setCurrentFilePath(null);
-      document.getElementById('editor-view').style.display = 'none';
-      document.getElementById('empty-state').style.display = 'flex';
+      let tabs = [...openTabs];
+      tabs = tabs.filter(t => t.path !== currentFilePath);
+      setOpenTabs(tabs);
+      
+      if (tabs.length > 0) {
+        loadFile(tabs[0].path);
+      } else {
+        setActiveTabPath(null);
+        document.getElementById('editor-view').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'flex';
+      }
       refreshTree();
     });
+}
+
+// ─── Drag & Drop Upload ─────────────────────────────────────────────
+export function setupDragAndDrop() {
+  const overlay = document.getElementById('drop-overlay');
+  
+  // Prevent default behavior for whole window
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.includes('Files')) {
+      overlay.style.display = 'flex';
+    }
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    if (e.target === overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.remove('drag-over');
+    }
+  });
+
+  overlay.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    overlay.classList.add('drag-over');
+  });
+
+  overlay.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    overlay.style.display = 'none';
+    overlay.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (!files.length) return;
+
+    // Use current active directory or root
+    let targetFolder = '';
+    if (currentFilePath) {
+      targetFolder = currentFilePath.split('/').slice(0, -1).join('/');
+    }
+
+    const formData = new FormData();
+    formData.append('targetFolder', targetFolder);
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`${files.length} dosya yüklendi`, { type: 'success', duration: 3000 });
+        await refreshTree();
+        // Load the last uploaded file to preview it
+        const lastFileName = files[files.length - 1].name;
+        const uploadPath = targetFolder ? targetFolder + '/' + lastFileName : lastFileName;
+        loadFile(uploadPath);
+      } else {
+        showToast('Yükleme hatası: ' + data.error, { type: 'error', duration: 4000 });
+      }
+    } catch(err) {
+      showToast('Yükleme sırasında hata oluştu', { type: 'error', duration: 4000 });
+    }
+  });
 }
 
 // ─── Format Toolbar ─────────────────────────────────────────────────

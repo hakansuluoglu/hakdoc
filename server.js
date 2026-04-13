@@ -2,14 +2,17 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 14296;
 
 const DOCS_ROOT = process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/xx_hakdoc');
+const upload = multer({ dest: path.join(os.tmpdir(), 'docwebapp_uploads') });
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/raw', express.static(DOCS_ROOT));
 
 function isHidden(name) {
   return name.startsWith('.') || name === 'DocWebApp';
@@ -166,6 +169,78 @@ app.post('/api/move', (req, res) => {
     fs.renameSync(fullSource, fullDest);
     const newRelPath = path.relative(DOCS_ROOT, fullDest);
     res.json({ success: true, newPath: newRelPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/upload', upload.array('files'), (req, res) => {
+  try {
+    const targetFolder = req.body.targetFolder || '';
+    const fullTargetDir = path.join(DOCS_ROOT, targetFolder);
+    if (!fullTargetDir.startsWith(DOCS_ROOT)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!fs.existsSync(fullTargetDir)) {
+      fs.mkdirSync(fullTargetDir, { recursive: true });
+    }
+    
+    for (const file of req.files) {
+      const destPath = path.join(fullTargetDir, file.originalname);
+      fs.copyFileSync(file.path, destPath);
+      fs.unlinkSync(file.path);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/search', (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query || query.length < 2) {
+      return res.json({ results: [] });
+    }
+    
+    const results = [];
+    const queryLower = query.toLowerCase();
+
+    function searchDir(dir) {
+      if (!fs.existsSync(dir)) return;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (isHidden(entry.name)) continue;
+        const fullPath = path.join(dir, entry.name);
+        const relPath = path.relative(DOCS_ROOT, fullPath);
+        
+        if (entry.isDirectory()) {
+          searchDir(fullPath);
+        } else {
+          const ext = path.extname(entry.name).toLowerCase();
+          const binaryExts = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.zip', '.tar', '.gz'];
+          
+          if (entry.name.toLowerCase().includes(queryLower)) {
+            results.push({ path: relPath, name: entry.name, matchType: 'name' });
+            continue;
+          }
+          
+          if (!binaryExts.includes(ext)) {
+            try {
+               const content = fs.readFileSync(fullPath, 'utf8');
+               if (content.toLowerCase().includes(queryLower)) {
+                 results.push({ path: relPath, name: entry.name, matchType: 'content' });
+               }
+            } catch (e) {
+               // ignore
+            }
+          }
+        }
+      }
+    }
+    
+    searchDir(DOCS_ROOT);
+    res.json({ results: results.slice(0, 50) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

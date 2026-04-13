@@ -22,15 +22,26 @@
           <button onclick="refreshTree()" title="Yenile"><i class="fas fa-sync-alt"></i></button>
         </div>
       </div>
+      <div id="sidebar-search">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="search-input" placeholder="Dosyalarda ara..." autocomplete="off">
+        </div>
+      </div>
       <div id="file-tree"></div>
+      <div id="search-results" style="display:none"></div>
     </aside>
     <main id="content">
+      <div id="tabs-container" style="display:none">
+        <div class="tabs-list"></div>
+      </div>
       <div id="empty-state">
         <i class="fas fa-file-alt" style="font-size:48px;opacity:0.3"></i>
         <p>Bir dosya seçin veya yeni bir dosya oluşturun</p>
       </div>
       <div id="editor-view" style="display:none">
         <div id="editor-header">
+          <button id="toggle-sidebar" class="btn-toggle-sidebar" title="Yan menüyü aç/kapat"><i class="fas fa-bars"></i></button>
           <div id="file-info">
             <span id="file-name"></span>
             <span id="unsaved-dot" style="display:none" title="Kaydedilmemiş değişiklik"></span>
@@ -71,6 +82,7 @@
         </div>
         <div id="markdown-preview"></div>
         <textarea id="markdown-editor" style="display:none"></textarea>
+        <iframe id="pdf-viewer" style="display:none" width="100%" height="100%" style="border:none;" title="PDF Preview"></iframe>
       </div>
     </main>
   </div>
@@ -104,6 +116,13 @@
         <button onclick="moveModalCancel()" class="btn-cancel">İptal</button>
         <button onclick="moveModalOk()" class="btn-ok">Taşı</button>
       </div>
+    </div>
+  </div>
+
+  <div id="drop-overlay" style="display:none">
+    <div class="drop-message">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <h2>Dosyaları buraya bırakın</h2>
     </div>
   </div>
 
