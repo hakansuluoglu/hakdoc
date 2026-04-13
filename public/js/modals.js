@@ -2,7 +2,7 @@
 import {
   currentFilePath, isEditing, modalCallback,
   ctxTargetPath, ctxTargetType, moveSourcePath, moveSelectedFolder,
-  setCurrentFilePath, setModalCallback, setCtxTarget,
+  setActiveTabPath, setModalCallback, setCtxTarget,
   setMoveSourcePath, setMoveSelectedFolder, setMoveTreeData, clearDraft
 } from './state.js';
 import { refreshTree } from './tree.js';
@@ -134,7 +134,7 @@ export function ctxRename() {
       const data = await res.json();
       if (data.success) {
         if (currentFilePath === ctxTargetPath) {
-          setCurrentFilePath(data.newPath);
+          setActiveTabPath(data.newPath);
           document.getElementById('file-path-display').textContent = data.newPath;
           document.getElementById('file-name').textContent = newName;
         }
@@ -163,7 +163,7 @@ export function ctxDelete() {
     .then(() => {
       if (currentFilePath === ctxTargetPath || (isFolder && currentFilePath && currentFilePath.startsWith(ctxTargetPath + '/'))) {
         clearDraft(ctxTargetPath);
-        setCurrentFilePath(null);
+        setActiveTabPath(null);
         document.getElementById('editor-view').style.display = 'none';
         document.getElementById('empty-state').style.display = 'flex';
       }
@@ -273,7 +273,7 @@ export async function moveFileTo(sourcePath, targetFolder) {
     try { data = JSON.parse(text); } catch { throw new Error('Sunucu yanıtı: ' + res.status + ' - ' + text.substring(0, 200)); }
     if (data.success) {
       if (currentFilePath === sourcePath) {
-        setCurrentFilePath(data.newPath);
+        setActiveTabPath(data.newPath);
         document.getElementById('file-path-display').textContent = data.newPath;
       }
       refreshTree();
