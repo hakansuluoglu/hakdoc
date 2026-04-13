@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocWebApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div id="sidebar-header">
+        <h2><i class="fas fa-book-open"></i> Docs</h2>
+        <div id="sidebar-actions">
+          <button onclick="createFolder()" title="Yeni Klasör"><i class="fas fa-folder-plus"></i></button>
+          <button onclick="createFile()" title="Yeni Dosya"><i class="fas fa-file-circle-plus"></i></button>
+          <button onclick="refreshTree()" title="Yenile"><i class="fas fa-sync-alt"></i></button>
+        </div>
+      </div>
+      <div id="file-tree"></div>
+    </aside>
+    <main id="content">
+      <div id="empty-state">
+        <i class="fas fa-file-alt" style="font-size:48px;opacity:0.3"></i>
+        <p>Bir dosya seçin veya yeni bir dosya oluşturun</p>
+      </div>
+      <div id="editor-view" style="display:none">
+        <div id="editor-header">
+          <div id="file-info">
+            <span id="file-name"></span>
+            <span id="file-path-display"></span>
+          </div>
+          <div id="editor-actions">
+            <button id="btn-edit" onclick="toggleEdit()" title="Düzenle"><i class="fas fa-pen"></i></button>
+            <button id="btn-save" onclick="saveFile()" title="Kaydet" style="display:none"><i class="fas fa-save"></i></button>
+            <button id="btn-delete" onclick="deleteCurrent()" title="Sil"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div id="format-toolbar" style="display:none">
+          <button onclick="insertFormat('heading')" title="Başlık"><i class="fas fa-heading"></i></button>
+          <button onclick="insertFormat('bold')" title="Kalın"><i class="fas fa-bold"></i></button>
+          <button onclick="insertFormat('italic')" title="İtalik"><i class="fas fa-italic"></i></button>
+          <button onclick="insertFormat('strikethrough')" title="Üstü çizili"><i class="fas fa-strikethrough"></i></button>
+          <span class="toolbar-sep"></span>
+          <button onclick="insertFormat('ul')" title="Liste"><i class="fas fa-list-ul"></i></button>
+          <button onclick="insertFormat('ol')" title="Numaralı Liste"><i class="fas fa-list-ol"></i></button>
+          <button onclick="insertFormat('checklist')" title="Checklist"><i class="fas fa-tasks"></i></button>
+          <span class="toolbar-sep"></span>
+          <button onclick="insertFormat('code')" title="Kod"><i class="fas fa-code"></i></button>
+          <button onclick="insertFormat('codeblock')" title="Kod Bloğu"><i class="fas fa-file-code"></i></button>
+          <button onclick="insertFormat('link')" title="Link"><i class="fas fa-link"></i></button>
+          <button onclick="insertFormat('image')" title="Resim"><i class="fas fa-image"></i></button>
+          <span class="toolbar-sep"></span>
+          <button onclick="insertFormat('quote')" title="Alıntı"><i class="fas fa-quote-left"></i></button>
+          <button onclick="insertFormat('table')" title="Tablo"><i class="fas fa-table"></i></button>
+          <button onclick="insertFormat('mermaid')" title="Mermaid Diagram"><i class="fas fa-project-diagram"></i></button>
+          <span class="toolbar-sep"></span>
+          <button onclick="insertFormat('hr')" title="Çizgi"><i class="fas fa-minus"></i></button>
+        </div>
+        <div id="markdown-preview"></div>
+        <textarea id="markdown-editor" style="display:none"></textarea>
+      </div>
+    </main>
+  </div>
+
+  <div id="modal-overlay" style="display:none">
+    <div id="modal">
+      <h3 id="modal-title"></h3>
+      <input id="modal-input" type="text" placeholder="" autocomplete="off">
+      <div id="modal-buttons">
+        <button onclick="modalCancel()" class="btn-cancel">İptal</button>
+        <button onclick="modalOk()" class="btn-ok">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="context-menu" style="display:none">
+    <button id="ctx-new-file" onclick="ctxNewFile()"><i class="fas fa-file-circle-plus"></i> Yeni Dosya</button>
+    <button id="ctx-new-folder" onclick="ctxNewFolder()"><i class="fas fa-folder-plus"></i> Yeni Klasör</button>
+    <div class="ctx-sep"></div>
+    <button id="ctx-rename" onclick="ctxRename()"><i class="fas fa-pen"></i> Yeniden Adlandır</button>
+    <button id="ctx-move" onclick="ctxMove()"><i class="fas fa-arrows-alt"></i> Taşı...</button>
+    <div class="ctx-sep"></div>
+    <button id="ctx-delete" onclick="ctxDelete()" class="ctx-danger"><i class="fas fa-trash"></i> Sil</button>
+  </div>
+
+  <div id="move-modal-overlay" style="display:none">
+    <div id="move-modal">
+      <h3>Taşıma Hedefi Seç</h3>
+      <div id="move-tree"></div>
+      <div id="move-modal-buttons">
+        <button onclick="moveModalCancel()" class="btn-cancel">İptal</button>
+        <button onclick="moveModalOk()" class="btn-ok">Taşı</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
