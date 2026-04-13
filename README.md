@@ -13,6 +13,17 @@ veya `DocWebApp.command` dosyasına çift tıkla.
 
 Tarayıcıda http://localhost:14296 açılır.
 
+### Environment Variables
+
+| Değişken | Varsayılan | Açıklama |
+| --- | --- | --- |
+| `DOCS_ROOT` | `~/Documents/xx_hakdoc` | Doküman kök dizini |
+| `PORT` | `14296` | Sunucu portu |
+
+```bash
+DOCS_ROOT=/path/to/docs npm start
+```
+
 ## Özellikler
 
 - [x] Gece modu (GitHub dark tema)
@@ -28,7 +39,34 @@ Tarayıcıda http://localhost:14296 açılır.
 - [x] Sublime Text ile düzenleme senkronu (sekme focus'unda otomatik yenile)
 - [x] Cmd+S ile kaydetme
 - [x] Yeni folder butonu kök dizine ekler, sağ tık ile alt klasöre eklenir
+- [x] Auto-save (localStorage) — kaydedilmemiş değişiklikler refresh sonrası korunur
+- [x] Son açık dosya ve klasör durumu hatırlama (session restore)
+- [x] Toast bildirimler (draft recovery, kaydetme onayı)
+- [x] Highlight (`==text==`) desteği
+- [x] GitHub-style callout/alert rendering (`> [!NOTE]`, `> [!WARNING]` vb.)
+- [x] Footnote, superscript, subscript format desteği
+- [x] Heading level cycling (H1 → H2 → H3 → H4 → plain text)
+- [x] Modüler mimari (ES Modules)
 - [ ] Arama
 - [ ] Multi-tab / birden fazla dosya açık tutma
 - [ ] Dosya yükleme (drag & drop file upload)
 - [ ] Export (PDF, HTML)
+
+## Proje Yapısı
+
+```
+DocWebApp/
+├── server.js              # Express sunucu (API endpoints)
+├── package.json
+├── public/
+│   ├── index.html         # Ana HTML
+│   ├── style.css          # Tüm stiller
+│   └── js/
+│       ├── app.js         # Entry point, init, keyboard shortcuts
+│       ├── state.js       # Global state, localStorage, draft management
+│       ├── tree.js        # Dosya ağacı render, drag & drop
+│       ├── editor.js      # Dosya yükleme, düzenleme, format toolbar
+│       ├── modals.js      # Modal, context menü, taşıma
+│       └── utils.js       # Utility fonksiyonlar, toast sistemi
+└── DocWebApp.command      # macOS çift tıkla başlatma
+```

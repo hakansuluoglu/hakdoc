@@ -260,6 +260,21 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ─── Unsaved Indicator ────────────────────────────────────────────── */
+#unsaved-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--yellow);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 #editor-actions {
   display: flex;
   gap: 4px;
@@ -465,6 +480,81 @@ body {
 #markdown-preview input[type="checkbox"] {
   margin-right: 6px;
   accent-color: var(--accent);
+}
+
+/* ─── Highlight (==text==) ─────────────────────────────────────────── */
+#markdown-preview mark {
+  background: rgba(210, 153, 34, 0.3);
+  color: var(--text-primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ─── GitHub-style Alerts / Callouts ───────────────────────────────── */
+.gh-alert {
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 1em 0;
+  border-left: 4px solid;
+}
+
+.gh-alert-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: capitalize;
+}
+
+.gh-alert-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.gh-alert-content p:first-child {
+  margin-top: 0;
+}
+
+.gh-alert-note {
+  background: rgba(88, 166, 255, 0.08);
+  border-color: var(--accent);
+}
+.gh-alert-note .gh-alert-title {
+  color: var(--accent);
+}
+
+.gh-alert-tip {
+  background: rgba(63, 185, 80, 0.08);
+  border-color: var(--green);
+}
+.gh-alert-tip .gh-alert-title {
+  color: var(--green);
+}
+
+.gh-alert-important {
+  background: rgba(188, 140, 255, 0.08);
+  border-color: var(--purple);
+}
+.gh-alert-important .gh-alert-title {
+  color: var(--purple);
+}
+
+.gh-alert-warning {
+  background: rgba(210, 153, 34, 0.08);
+  border-color: var(--yellow);
+}
+.gh-alert-warning .gh-alert-title {
+  color: var(--yellow);
+}
+
+.gh-alert-caution {
+  background: rgba(248, 81, 73, 0.08);
+  border-color: var(--red);
+}
+.gh-alert-caution .gh-alert-title {
+  color: var(--red);
 }
 
 .mermaid-container {
@@ -751,3 +841,106 @@ body {
   gap: 8px;
   margin-top: 16px;
 }
+
+/* ─── Toast Notifications ────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 300px;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+.toast-visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-exit {
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+.toast-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.toast-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.toast-btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-main);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+
+.toast-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.toast-btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.toast-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.toast-btn-secondary:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Toast type colors */
+.toast-info .toast-icon { color: var(--accent); }
+.toast-success .toast-icon { color: var(--green); }
+.toast-warning .toast-icon { color: var(--yellow); }
+.toast-error .toast-icon { color: var(--red); }
+
+.toast-success { border-left: 3px solid var(--green); }
+.toast-warning { border-left: 3px solid var(--yellow); }
+.toast-error { border-left: 3px solid var(--red); }
+.toast-info { border-left: 3px solid var(--accent); }

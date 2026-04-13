@@ -1,12 +1,12 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const chokidar = require('chokidar');
+const os = require('os');
 
 const app = express();
-const PORT = 14296;
+const PORT = process.env.PORT || 14296;
 
-const DOCS_ROOT = '/Users/hakan.suluoglu/Documents/xx_hakdoc';
+const DOCS_ROOT = process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/xx_hakdoc');
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));

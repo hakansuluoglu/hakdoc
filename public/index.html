@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DocWebApp</title>
+  <meta name="description" content="Local document viewer with markdown rendering, syntax highlighting, and mermaid diagram support.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -32,6 +33,7 @@
         <div id="editor-header">
           <div id="file-info">
             <span id="file-name"></span>
+            <span id="unsaved-dot" style="display:none" title="Kaydedilmemiş değişiklik"></span>
             <span id="file-path-display"></span>
           </div>
           <div id="editor-actions">
@@ -41,10 +43,11 @@
           </div>
         </div>
         <div id="format-toolbar" style="display:none">
-          <button onclick="insertFormat('heading')" title="Başlık"><i class="fas fa-heading"></i></button>
+          <button onclick="insertFormat('heading')" title="Başlık (tıklayınca H1→H4 döner)"><i class="fas fa-heading"></i></button>
           <button onclick="insertFormat('bold')" title="Kalın"><i class="fas fa-bold"></i></button>
           <button onclick="insertFormat('italic')" title="İtalik"><i class="fas fa-italic"></i></button>
           <button onclick="insertFormat('strikethrough')" title="Üstü çizili"><i class="fas fa-strikethrough"></i></button>
+          <button onclick="insertFormat('highlight')" title="Vurgula"><i class="fas fa-highlighter"></i></button>
           <span class="toolbar-sep"></span>
           <button onclick="insertFormat('ul')" title="Liste"><i class="fas fa-list-ul"></i></button>
           <button onclick="insertFormat('ol')" title="Numaralı Liste"><i class="fas fa-list-ol"></i></button>
@@ -56,8 +59,13 @@
           <button onclick="insertFormat('image')" title="Resim"><i class="fas fa-image"></i></button>
           <span class="toolbar-sep"></span>
           <button onclick="insertFormat('quote')" title="Alıntı"><i class="fas fa-quote-left"></i></button>
+          <button onclick="insertFormat('callout')" title="Callout / Uyarı"><i class="fas fa-bell"></i></button>
           <button onclick="insertFormat('table')" title="Tablo"><i class="fas fa-table"></i></button>
           <button onclick="insertFormat('mermaid')" title="Mermaid Diagram"><i class="fas fa-project-diagram"></i></button>
+          <span class="toolbar-sep"></span>
+          <button onclick="insertFormat('footnote')" title="Dipnot"><i class="fas fa-asterisk"></i></button>
+          <button onclick="insertFormat('superscript')" title="Üst simge"><i class="fas fa-superscript"></i></button>
+          <button onclick="insertFormat('subscript')" title="Alt simge"><i class="fas fa-subscript"></i></button>
           <span class="toolbar-sep"></span>
           <button onclick="insertFormat('hr')" title="Çizgi"><i class="fas fa-minus"></i></button>
         </div>
@@ -99,9 +107,12 @@
     </div>
   </div>
 
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="/app.js"></script>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
