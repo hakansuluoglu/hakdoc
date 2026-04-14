@@ -253,7 +253,13 @@ export function initMarked() {
       const id = 'mermaid-' + Math.random().toString(36).substring(2, 11);
       return `<div class="mermaid-container"><div class="mermaid" id="${id}">${code}</div></div>`;
     }
-    return originalCodeRenderer(code, language);
+    const html = originalCodeRenderer(code, language);
+    return `<div class="code-block-wrap">
+      <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Kodu Kopyala">
+        <i class="fas fa-copy"></i>
+      </button>
+      ${html}
+    </div>`;
   };
 
   // GitHub-style callout/alert rendering in blockquotes
@@ -386,7 +392,30 @@ export async function loadFile(filePath) {
     if (!res.ok) throw new Error('File not found');
     const data = await res.json();
 
+    const codeExtMap = {
+      'py': 'python',
+      'ts': 'typescript',
+      'js': 'javascript',
+      'kt': 'kotlin',
+      'java': 'java',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'json': 'json',
+      'css': 'css',
+      'html': 'xml',
+      'sql': 'sql',
+      'sh': 'bash',
+      'rb': 'ruby',
+      'go': 'go',
+      'php': 'php',
+      'c': 'c',
+      'cpp': 'cpp',
+      'cs': 'csharp',
+      'rs': 'rust'
+    };
+
     const isMarkdown = ['md', 'markdown'].includes(ext);
+    const isCode = Object.keys(codeExtMap).includes(ext);
 
     document.getElementById('file-name').textContent = data.name;
     document.getElementById('file-path-display').textContent = filePath;
@@ -396,11 +425,22 @@ export async function loadFile(filePath) {
       document.getElementById('btn-edit').style.display = '';
       document.getElementById('markdown-preview').innerHTML = marked.parse(data.content);
       renderMermaidDiagrams();
+    } else if (isCode) {
+      document.getElementById('btn-edit').style.display = '';
+      const lang = codeExtMap[ext];
+      const highlighted = hljs.highlight(data.content, { language: lang }).value;
+      document.getElementById('markdown-preview').innerHTML = `
+        <div class="code-block-wrap full-code-view">
+          <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Kodu Kopyala">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>
+        </div>`;
     } else {
       document.getElementById('btn-edit').style.display = '';
       document.getElementById('markdown-preview').innerHTML =
-        '<pre style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;"><code>' +
-        escapeHtml(data.content) + '</code></pre>';
+        '<div class="code-block-wrap"><pre style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;"><code>' +
+        escapeHtml(data.content) + '</code></pre></div>';
     }
 
     document.getElementById('markdown-editor').value = data.content;
@@ -512,6 +552,41 @@ export async function saveFile() {
     showToast('Kaydetme hatası!', { type: 'error', duration: 3000 });
   }
 }
+
+globalThis.copyCodeBlock = async function(btn) {
+  const container = btn.closest('.code-block-wrap');
+  const codeEl = container.querySelector('code');
+  const text = codeEl ? codeEl.innerText : '';
+  
+  try {
+    await navigator.clipboard.writeText(text.trim());
+    const icon = btn.querySelector('i');
+    const originalClass = icon.className;
+    icon.className = 'fas fa-check';
+    btn.classList.add('copied');
+    
+    showToast('Kod kopyalandı!', { type: 'success', duration: 2000 });
+    
+    setTimeout(() => {
+      icon.className = originalClass;
+      btn.classList.remove('copied');
+    }, 2000);
+  } catch (err) {
+    console.error('Copy error:', err);
+    showToast('Kopyalama başarısız!', { type: 'error' });
+  }
+};
+
+globalThis.copyDocument = async function() {
+  const content = document.getElementById('markdown-editor').value;
+  try {
+    await navigator.clipboard.writeText(content);
+    showToast('Tüm döküman kopyalandı!', { type: 'success', duration: 2000 });
+  } catch (err) {
+    console.error('Copy error:', err);
+    showToast('Kopyalama başarısız!', { type: 'error' });
+  }
+};
 
 export function deleteCurrent() {
   if (!currentFilePath) return;

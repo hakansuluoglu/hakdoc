@@ -1140,3 +1140,59 @@ body {
 .fn-back:hover {
   opacity: 1;
 }
+
+/* ─── Code Copy Button ────────────────────────────────────────────── */
+.code-block-wrap {
+  position: relative;
+  margin: 1em 0;
+}
+.copy-code-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.code-block-wrap:hover .copy-code-btn {
+  opacity: 1;
+}
+.copy-code-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+.copy-code-btn.copied {
+  color: var(--green) !important;
+  border-color: var(--green) !important;
+}
+.copy-code-btn i {
+  font-size: 14px;
+}
+
+.full-code-view {
+  margin: 0 !important;
+}
+.full-code-view pre {
+  margin: 0 !important;
+  border-radius: 8px;
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border) !important;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.full-code-view .copy-code-btn {
+  top: 12px;
+  right: 12px;
+}
