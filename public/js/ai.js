@@ -1,26 +1,26 @@
-// ─── AI Frontend Modulu ──────────────────────────────────────────────────────
-// AI status kontrolu, SSE baglantisi, panel yonetimi ve localStorage cache
+// ─── AI Frontend Module ───────────────────────────────────────────────────────
+// Handles AI status checks, SSE streaming, panel UI, and localStorage cache.
 
-import { aiEnabled, setAiEnabled, setAiStatus, currentFilePath } from './state.js';
+import { aiEnabled, setAiEnabled, setAiStatus, currentFilePath, getAILanguage } from './state.js';
 
-// ─── Cache Sabitleri ─────────────────────────────────────────────────────────
+// ─── Cache Constants ──────────────────────────────────────────────────────────
 
 const CACHE_PREFIX = 'docwebapp:ai:summary:';
-const CACHE_MAX_ENTRIES = 50; // Maksimum saklanacak ozet sayisi
+const CACHE_MAX_ENTRIES = 50; // Maximum number of cached summaries
 
-// ─── Cache Yardimcilari ──────────────────────────────────────────────────────
+// ─── Cache Helpers ────────────────────────────────────────────────────────────
 
 /**
- * Bir dosya icin cache key olusturur.
+ * Build the localStorage key for a given file path and language.
  * @param {string} filePath
  * @returns {string}
  */
 function cacheKey(filePath) {
-  return CACHE_PREFIX + filePath;
+  return CACHE_PREFIX + getAILanguage() + ':' + filePath;
 }
 
 /**
- * localStorage'dan bir dosyanin ozetini okur.
+ * Read a cached summary from localStorage.
  * @param {string} filePath
  * @returns {{ text: string, savedAt: string, model: string } | null}
  */
@@ -35,21 +35,20 @@ function readCache(filePath) {
 }
 
 /**
- * Ozeti localStorage'a yazar. Eski kayitlari temizler.
+ * Write a summary to localStorage, evicting the oldest entry when over the limit.
  * @param {string} filePath
  * @param {string} text
  * @param {string} model
  */
 function writeCache(filePath, text, model) {
   try {
-    // Eski cache kayitlarini bul ve temizle (CACHE_MAX_ENTRIES siniri)
+    // Evict oldest entry when at capacity
     const existingKeys = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && k.startsWith(CACHE_PREFIX)) existingKeys.push(k);
     }
     if (existingKeys.length >= CACHE_MAX_ENTRIES) {
-      // En eskiyi bul ve sil
       let oldest = null;
       let oldestTime = Infinity;
       for (const k of existingKeys) {
@@ -71,12 +70,12 @@ function writeCache(filePath, text, model) {
     };
     localStorage.setItem(cacheKey(filePath), JSON.stringify(entry));
   } catch (err) {
-    console.warn('[AI Cache] Yazma hatasi:', err.message);
+    console.warn('[AI Cache] Write error:', err.message);
   }
 }
 
 /**
- * Bir dosyanin cache kaydini siler.
+ * Remove the cached summary for a file.
  * @param {string} filePath
  */
 function clearCache(filePath) {
@@ -86,7 +85,7 @@ function clearCache(filePath) {
 }
 
 /**
- * Tarihi "GG.AA.YYYY SS:DD" formatinda dondurur.
+ * Format a Date as "DD.MM.YYYY HH:MM".
  * @param {Date} date
  * @returns {string}
  */
@@ -95,11 +94,11 @@ function formatDateTime(date) {
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-// ─── AI Status Kontrolu ──────────────────────────────────────────────────────
+// ─── AI Status ────────────────────────────────────────────────────────────────
 
 /**
- * Sunucudan AI durumunu sorgular ve state'i gunceller.
- * AI kapaliysa body'e 'ai-disabled' class'i eklenir.
+ * Query the server for AI status and update app state.
+ * Adds 'ai-disabled' class to body when AI is not configured.
  */
 export async function initAI() {
   try {
@@ -109,94 +108,93 @@ export async function initAI() {
     if (data.enabled) {
       setAiStatus(data.provider, data.model);
       document.body.classList.remove('ai-disabled');
-      // Panel basligina model bilgisini ekle
+      // Show model info in panel header
       const modelInfo = document.getElementById('ai-panel-model-info');
       if (modelInfo) modelInfo.textContent = `${data.provider} / ${data.model}`;
     } else {
       document.body.classList.add('ai-disabled');
     }
   } catch (err) {
-    console.warn('[AI] Status sorgulanamadi:', err.message);
+    console.warn('[AI] Status check failed:', err.message);
     setAiEnabled(false);
     document.body.classList.add('ai-disabled');
   }
 }
 
-// ─── Summarize Panel ─────────────────────────────────────────────────────────
+// ─── Summary Panel ────────────────────────────────────────────────────────────
 
 let currentEventSource = null;
 let accumulatedText = '';
-let activeFilePath = null;   // Panel icin hangi dosyanin ozeti gosteriliyor
-let currentModel = '';       // Ozet icin kullanilan model adi
+let activeFilePath = null;   // Which file's summary is currently shown in the panel
+let currentModel = '';       // Model used for the current summary
 
 /**
- * AI ozet panelini acar. Once cache'e bakar, varsa gosterir.
- * Yoksa yeni istek yapar.
+ * Open the AI summary panel. Serves from cache if available, otherwise fetches.
  */
 export async function aiSummarize() {
   if (!currentFilePath) return;
 
-  // PDF gibi binary dosyalari destekleme
+  // Binary file types are not supported
   const ext = currentFilePath.split('.').pop().toLowerCase();
   if (['pdf', 'png', 'jpg', 'jpeg', 'gif', 'zip', 'tar', 'gz'].includes(ext)) {
     showAIPanel();
-    setAIPanelError('Bu dosya türü ozet icin desteklenmiyor.');
+    setAIPanelError('This file type is not supported for summarization.');
     return;
   }
 
   activeFilePath = currentFilePath;
   showAIPanel();
 
-  // Cache'de ozet var mi?
+  // Serve from cache if available
   const cached = readCache(activeFilePath);
   if (cached) {
     accumulatedText = cached.text;
     currentModel = cached.model;
     setAIPanelContent(accumulatedText);
-    setCacheInfo(cached.savedAt, false);  // cache'den geldi, yenileme gorunur
+    setCacheInfo(cached.savedAt, false);
     return;
   }
 
-  // Cache yok → yeni istek
+  // No cache — fetch a new summary
   await _fetchSummary(activeFilePath);
 }
 
 /**
- * "Yenile" butonuna basildiginda cache'i atlar, yeni istek yapar.
+ * Bypass the cache and fetch a fresh summary.
  */
 export async function aiRefreshSummary() {
   if (!activeFilePath) return;
   clearCache(activeFilePath);
-  setCacheInfo('', true);  // cache bilgisini gizle
+  setCacheInfo('', true);
   await _fetchSummary(activeFilePath);
 }
 
 /**
- * Gercek API isteğini yapar, SSE stream'i okur ve cache'e yazar.
+ * Send the summarize request, read the SSE stream, and write to cache.
  * @param {string} filePath
  */
 async function _fetchSummary(filePath) {
   setAIPanelLoading(true);
   accumulatedText = '';
 
-  // Onceki EventSource'u kapat
+  // Close any previous stream
   if (currentEventSource) {
     currentEventSource.close();
     currentEventSource = null;
   }
 
   try {
-    // SSE yerine fetch + ReadableStream kullan (POST destegi icin)
+    // Use fetch + ReadableStream instead of EventSource (POST support required)
     const response = await fetch('/api/ai/summarize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath }),
+      body: JSON.stringify({ filePath, language: getAILanguage() }),
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: 'Sunucu hatasi' }));
+      const err = await response.json().catch(() => ({ error: 'Server error' }));
       setAIPanelLoading(false);
-      setAIPanelError(err.error || 'Bilinmeyen hata');
+      setAIPanelError(err.error || 'Unknown error');
       return;
     }
 
@@ -213,9 +211,9 @@ async function _fetchSummary(filePath) {
 
       buffer += decoder.decode(value, { stream: true });
 
-      // SSE satirlarini isle
+      // Process complete SSE lines
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // Son eksik satiri buffer'da birak
+      buffer = lines.pop(); // Keep incomplete last line in buffer
 
       for (const line of lines) {
         if (line.startsWith('data: ')) {
@@ -226,7 +224,7 @@ async function _fetchSummary(filePath) {
               return;
             }
             if (payload.done) {
-              // Stream tamamlandi — cache'e kaydet
+              // Stream complete — write to cache
               if (accumulatedText) {
                 writeCache(filePath, accumulatedText, currentModel);
                 const now = new Date();
@@ -239,13 +237,13 @@ async function _fetchSummary(filePath) {
               setAIPanelContent(accumulatedText);
             }
           } catch (_) {
-            // JSON parse hatasi - satiri atla
+            // Skip malformed SSE lines
           }
         }
       }
     }
 
-    // Stream bitti ama done paketi gelmediyse yine de cache'e yaz
+    // Stream ended without a done packet — save what we have
     if (accumulatedText) {
       writeCache(filePath, accumulatedText, currentModel);
       const now = new Date();
@@ -253,11 +251,11 @@ async function _fetchSummary(filePath) {
     }
   } catch (err) {
     setAIPanelLoading(false);
-    setAIPanelError('Baglanti hatasi: ' + err.message);
+    setAIPanelError('Connection error: ' + err.message);
   }
 }
 
-// ─── Panel UI Yardimcilari ───────────────────────────────────────────────────
+// ─── Panel UI Helpers ─────────────────────────────────────────────────────────
 
 function showAIPanel() {
   const panel = document.getElementById('ai-panel');
@@ -297,7 +295,7 @@ function setAIPanelContent(text) {
   const content = document.getElementById('ai-panel-content');
   if (!content) return;
   content.style.display = 'block';
-  // marked.js global olarak yuklu
+  // marked.js is loaded globally
   if (typeof marked !== 'undefined') {
     content.innerHTML = marked.parse(text);
   } else {
@@ -306,9 +304,9 @@ function setAIPanelContent(text) {
 }
 
 /**
- * Cache bilgi barini gosterir/gizler.
- * @param {string} savedAt - "GG.AA.YYYY SS:DD" formatinda tarih ya da bos string
- * @param {boolean} hide - true ise bari gizle
+ * Show or hide the cache info bar.
+ * @param {string} savedAt - Formatted date string, or empty string
+ * @param {boolean} hide   - If true, hide the bar
  */
 function setCacheInfo(savedAt, hide) {
   const bar = document.getElementById('ai-panel-cache-bar');
@@ -323,7 +321,7 @@ function setCacheInfo(savedAt, hide) {
 }
 
 /**
- * Ozet icerigini panoya kopyalar.
+ * Copy the current summary text to the clipboard.
  */
 export function copyAISummary() {
   if (!accumulatedText) return;

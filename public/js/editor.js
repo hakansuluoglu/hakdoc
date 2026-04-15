@@ -3,7 +3,7 @@ import {
   currentFilePath, isEditing, setActiveTabPath, setIsEditing,
   saveDraft, loadDraft, clearDraft, hasDraft, openTabs, activeTabPath, setOpenTabs
 } from './state.js';
-import { escapeHtml, debounce, showToast } from './utils.js';
+import { escapeHtml, debounce, showToast, showConfirm } from './utils.js';
 import { refreshTree, highlightFileInTree } from './tree.js';
 
 // ─── Tabs Management ────────────────────────────────────────────────
@@ -219,7 +219,7 @@ export function initMarked() {
         const fnList = currentFootnotes.map(fn => 
           `<li id="fn:${fn.id}" class="fn-item">
             <span class="fn-content">${fn.content}</span>
-            <a href="#fnref:${fn.id}" class="fn-back" title="Geri dön">↩</a>
+            <a href="#fnref:${fn.id}" class="fn-back" title="Back">↩</a>
           </li>`
         ).join('\n');
         return html + `
@@ -255,7 +255,7 @@ export function initMarked() {
     }
     const html = originalCodeRenderer(code, language);
     return `<div class="code-block-wrap">
-      <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Kodu Kopyala">
+      <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Copy code">
         <i class="fas fa-copy"></i>
       </button>
       ${html}
@@ -314,7 +314,7 @@ async function renderMermaidDiagrams() {
       const { svg } = await mermaid.render(id + '-svg', code);
       el.innerHTML = svg;
     } catch (err) {
-      el.innerHTML = '<p style="color:var(--red);font-size:12px;">Mermaid render hatası: ' + escapeHtml(err.message || String(err)) + '</p>';
+      el.innerHTML = '<p style="color:var(--red);font-size:12px;">Mermaid render error: ' + escapeHtml(err.message || String(err)) + '</p>';
     }
   }
 }
@@ -431,7 +431,7 @@ export async function loadFile(filePath) {
       const highlighted = hljs.highlight(data.content, { language: lang }).value;
       document.getElementById('markdown-preview').innerHTML = `
         <div class="code-block-wrap full-code-view">
-          <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Kodu Kopyala">
+          <button class="copy-code-btn" onclick="copyCodeBlock(this)" title="Copy code">
             <i class="fas fa-copy"></i>
           </button>
           <pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>
@@ -449,20 +449,20 @@ export async function loadFile(filePath) {
     const draft = loadDraft(filePath);
     if (draft && draft.content !== data.content) {
       const timeAgo = getRelativeTime(draft.timestamp);
-      showToast(`Kaydedilmemiş değişiklik bulundu (${timeAgo})`, {
+      showToast(`Unsaved changes found (${timeAgo})`, {
         type: 'warning',
         actions: [
           {
-            label: 'Geri Yükle',
+            label: 'Restore',
             onClick: () => {
               document.getElementById('markdown-editor').value = draft.content;
               if (!isEditing) toggleEdit();
               updateUnsavedIndicator(true);
-              showToast('Draft geri yüklendi', { type: 'success', duration: 2000 });
+              showToast('Draft restored', { type: 'success', duration: 2000 });
             }
           },
           {
-            label: 'Yok Say',
+            label: 'Discard',
             onClick: () => {
               clearDraft(filePath);
             }
@@ -484,12 +484,12 @@ export async function loadFile(filePath) {
 function getRelativeTime(timestamp) {
   const diff = Date.now() - timestamp;
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'az önce';
-  if (minutes < 60) return `${minutes} dk önce`;
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} saat önce`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days} gün önce`;
+  return `${days}d ago`;
 }
 
 // ─── Edit Toggle ────────────────────────────────────────────────────
@@ -544,12 +544,12 @@ export async function saveFile() {
     if (data.success) {
       clearDraft(currentFilePath);
       updateUnsavedIndicator(false);
-      showToast('Dosya kaydedildi', { type: 'success', duration: 2000 });
+      showToast('File saved', { type: 'success', duration: 2000 });
       toggleEdit();
     }
   } catch (err) {
     console.error('Save error:', err);
-    showToast('Kaydetme hatası!', { type: 'error', duration: 3000 });
+    showToast('Save failed!', { type: 'error', duration: 3000 });
   }
 }
 
@@ -565,7 +565,7 @@ globalThis.copyCodeBlock = async function(btn) {
     icon.className = 'fas fa-check';
     btn.classList.add('copied');
     
-    showToast('Kod kopyalandı!', { type: 'success', duration: 2000 });
+    showToast('Code copied!', { type: 'success', duration: 2000 });
     
     setTimeout(() => {
       icon.className = originalClass;
@@ -573,7 +573,7 @@ globalThis.copyCodeBlock = async function(btn) {
     }, 2000);
   } catch (err) {
     console.error('Copy error:', err);
-    showToast('Kopyalama başarısız!', { type: 'error' });
+    showToast('Copy failed!', { type: 'error' });
   }
 };
 
@@ -581,16 +581,16 @@ globalThis.copyDocument = async function() {
   const content = document.getElementById('markdown-editor').value;
   try {
     await navigator.clipboard.writeText(content);
-    showToast('Tüm döküman kopyalandı!', { type: 'success', duration: 2000 });
+    showToast('Document copied!', { type: 'success', duration: 2000 });
   } catch (err) {
     console.error('Copy error:', err);
-    showToast('Kopyalama başarısız!', { type: 'error' });
+    showToast('Copy failed!', { type: 'error' });
   }
 };
 
-export function deleteCurrent() {
+export async function deleteCurrent() {
   if (!currentFilePath) return;
-  if (!confirm('Bu dosyayı silmek istediğinize emin misiniz?')) return;
+  if (!await showConfirm('Are you sure you want to delete this file?')) return;
   fetch('/api/file?path=' + encodeURIComponent(currentFilePath), { method: 'DELETE' })
     .then(() => {
       clearDraft(currentFilePath);
@@ -661,17 +661,17 @@ export function setupDragAndDrop() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`${files.length} dosya yüklendi`, { type: 'success', duration: 3000 });
+        showToast(`${files.length} file(s) uploaded`, { type: 'success', duration: 3000 });
         await refreshTree();
         // Load the last uploaded file to preview it
         const lastFileName = files[files.length - 1].name;
         const uploadPath = targetFolder ? targetFolder + '/' + lastFileName : lastFileName;
         loadFile(uploadPath);
       } else {
-        showToast('Yükleme hatası: ' + data.error, { type: 'error', duration: 4000 });
+        showToast('Upload error: ' + data.error, { type: 'error', duration: 4000 });
       }
     } catch(err) {
-      showToast('Yükleme sırasında hata oluştu', { type: 'error', duration: 4000 });
+      showToast('Upload failed', { type: 'error', duration: 4000 });
     }
   });
 }
@@ -754,7 +754,7 @@ export function insertFormat(type) {
       after = '\n```';
       newCursorPos = start + before.length;
       if (!selected) {
-        const template = 'graph TD\n    A[Başlangıç] --> B[Bitiş]';
+        const template = 'graph TD\n    A[Start] --> B[End]';
         editor.value = text.substring(0, start) + before + template + after + text.substring(end);
         newCursorPos = start + before.length + template.length;
         editor.focus();

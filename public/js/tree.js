@@ -7,6 +7,7 @@ import {
 } from './state.js';
 import { loadFile } from './editor.js';
 import { showContextMenu, moveFileTo, bulkMoveFiles } from './modals.js';
+import { showConfirm } from './utils.js';
 
 export async function refreshTree() {
   try {
@@ -206,11 +207,11 @@ function renderTree(items, container, depth) {
       // ── Quick-delete button ────────────────────────────────────
       const quickDelete = document.createElement('button');
       quickDelete.className = 'quick-delete-btn';
-      quickDelete.title = 'Hızlı Sil';
+      quickDelete.title = 'Delete';
       quickDelete.innerHTML = '<i class="fas fa-trash-alt"></i>';
       quickDelete.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm(`"${item.name}" dosyasını silmek istediğinize emin misiniz?`)) return;
+        if (!await showConfirm(`Delete "${item.name}"?`)) return;
         await fetch('/api/file?path=' + encodeURIComponent(item.path), { method: 'DELETE' });
         // If this was the open file, close editor
         if (currentFilePath === item.path) {

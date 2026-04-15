@@ -1,194 +1,163 @@
-# HakDoc
+<p align="center">
+  <img src="src-tauri/icons/128x128@2x.png" width="128" height="128" alt="HakDoc icon">
+</p>
 
-Yerel markdown dokümanlarını görüntülemek ve düzenlemek için macOS masaüstü uygulaması. Tauri + Express.js ile çalışır.
+<h1 align="center">HakDoc</h1>
 
----
+<p align="center">
+  <strong>Your docs, your machine, zero cloud.</strong><br>
+  A native macOS app for browsing, editing, and summarizing Markdown &amp; PDF files — built for developers who live across multiple repos.
+</p>
 
-## Masaüstü Uygulaması (Tauri)
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/hakansuluoglu/HakDoc?style=for-the-badge&color=blue" alt="Latest Release"></a>&nbsp;
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey?style=for-the-badge&logo=apple" alt="macOS">&nbsp;
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License">
+</p>
 
-### Kurulum (ilk kez)
-
-```bash
-# 1. Bağımlılıkları yükle
-npm install
-
-# 2. Rust yüklü değilse:
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# 3. DMG üret
-npx tauri build
-```
-
-DMG çıktısı:
-```
-src-tauri/target/release/bundle/dmg/HakDoc_0.1.0_aarch64.dmg
-```
-
-### ~/Applications'a kur (şirket Mac'i için — admin izni gerekmez)
-
-```bash
-mkdir -p ~/Applications
-cp -r src-tauri/target/release/bundle/macos/HakDoc.app ~/Applications/
-xattr -cr ~/Applications/HakDoc.app
-```
-
-Kurulduktan sonra Spotlight'tan "HakDoc" yazarak açılır. Dock'a eklemek için `~/Applications/HakDoc.app`'i Finder'dan sürükle.
-
-### Yeni sürüm üretme (güncelleme)
-
-Kod değişikliği yaptıktan sonra:
-
-```bash
-npx tauri build
-cp -r src-tauri/target/release/bundle/macos/HakDoc.app ~/Applications/
-xattr -cr ~/Applications/HakDoc.app
-```
-
-> İkinci derlemeden itibaren Rust cache'li olduğu için ~20-25 sn sürer.
-
-### Nasıl çalışır
-
-App açılınca arka planda `node server.js` başlatır (Express sunucu). Sunucu hazır olana kadar bekler, sonra pencereyi açar. App kapatılınca sunucu da durur.
-
-Node.js path'i Homebrew'dan geldiği için `lib.rs`'de tam yol kullanılır:
-```
-/opt/homebrew/bin/node
-```
-
-Node.js farklı bir yere kurulduysa [src-tauri/src/lib.rs](src-tauri/src/lib.rs) içinde güncelle.
+<p align="center">
+  <a href="../../releases/latest">Download the latest release</a>
+</p>
 
 ---
 
-## Geliştirme
+## The Problem
 
-Prod DMG (14296) ile çakışmamak için dev ortamı **14297** portunda çalışır.
+If you work with AI coding tools across multiple repositories, you know this cycle:
 
-| Komut | Port | Açıklama |
-|---|---|---|
-| `npm run dev` | 14297 | Sadece backend — tarayıcıda aç (en hızlı) |
-| `npm run tauri:dev` | 14297 | Tauri dev penceresi — Tauri davranışı test için |
-| `npm start` | 14296 | Prod backend (DMG ile aynı) |
+1. You generate `.md` files — context docs, architecture notes, prompt logs.
+2. When the AI context fills up, you hand those docs to a new session.
+3. Commit time arrives and those files are everywhere. They're not code, but you don't want to lose them either.
+4. You add them to `.gitignore`, use global ignores, maybe even a `.dontcommit` folder — but with 5+ repos it's still a mess.
+5. You end up symlinking everything into a single folder on your machine.
 
-### Browser geliştirme (önerilen)
+**Now you need a way to actually _read_ those files.** VS Code's Markdown preview is clunky for this. You want a fast, distraction-free viewer with a proper file tree — one that works on a single shared folder across all your projects.
 
-```bash
-npm run dev
-```
-
-Sunucu 14297'de başlar. Tarayıcıda [http://localhost:14297](http://localhost:14297) aç. Dosyayı kaydet → Cmd+R ile yenile. Kurulu DMG ile aynı anda çalışır, çakışma yok.
-
-### Tauri geliştirme penceresi
-
-```bash
-npm run tauri:dev
-```
-
-14297 portunda ayrı bir Tauri penceresi açar. `src-tauri/tauri.dev.conf.json` kullanır, prod config'i (`tauri.conf.json`) etkilemez. İlk çalıştırmada Rust derleme gerekir (~birkaç dakika), sonrakiler hızlı.
-
-> Hot reload yok — kod değişikliği sonrası tarayıcıda Cmd+R ya da `tauri:dev`'i yeniden başlat.
+That's why HakDoc exists.
 
 ---
 
-## Environment Variables
+## What It Does
 
-`.env.example` dosyasını kopyala:
+<p align="center">
+  <img src="doc/screenshots/hero.gif" width="800" alt="HakDoc — app overview">
+</p>
 
-```bash
-cp .env.example .env
-```
-
-| Değişken | Varsayılan | Açıklama |
-|---|---|---|
-| `DOCS_ROOT` | `~/Documents/xx_hakdoc` | Doküman kök dizini |
-| `PORT` | `14296` | Sunucu portu |
-| `AI_PROVIDER` | — | AI provider (zhipu, openai, anthropic, vb.) |
-| `AI_API_KEY` | — | Provider API key'i |
-
-AI provider tanımlanmazsa tüm AI butonları otomatik gizlenir.
-
-Desteklenen providerlar: `zhipu` (Z.AI), `openai`, `google`, `anthropic`, `ollama`, `lmstudio`, `deepseek`, `openrouter`
+- **Browse a folder tree** — point HakDoc at any folder and instantly navigate your docs with a collapsible sidebar.
+- **Render Markdown beautifully** — syntax-highlighted code blocks, Mermaid diagrams, tables, checklists — all rendered in a dark GitHub-style theme.
+- **Edit in place** — format toolbar with headings, bold, italic, tables, code blocks, and more. Auto-save drafts mean you never lose work.
+- **View PDFs** — no need to switch apps.
+- **Multi-tab workflow** — open several files side by side, just like a browser.
+- **Full-text search** — find anything across all your docs instantly.
+- **Drag & drop** — move files around or drop new ones in from Finder.
+- **AI Summary** — summarize any document with one click. Bring your own provider (OpenAI, Anthropic, Google, Ollama, and more).
+- **Built-in Settings** — configure your docs folder and AI provider from within the app. No config files needed.
+- **100% local** — your files stay on your machine. No accounts, no sync, no telemetry.
 
 ---
 
-## Özellikler
+## Quick Start
 
-- [x] Gece modu (GitHub dark tema)
-- [x] Sol panelde expandable folder tree
-- [x] Markdown render (marked.js)
-- [x] Syntax highlighting (highlight.js)
-- [x] Mermaid diagram desteği
-- [x] Dosya düzenleme + format toolbar (bold, italic, heading, code, table, checklist vb.)
-- [x] Yeni dosya/klasör oluşturma
-- [x] Sağ tıklama context menüsü (yeniden adlandır, sil, taşı)
-- [x] Dosya üzerinde hızlı silme butonu (hover'da çöp kutusu ikonu)
-- [x] Multi-select: Shift ile aralık seçimi, Cmd/Ctrl ile tekli seçim
-- [x] Toplu işlemler: Seçili dosyaları sağ tıkla toplu sil / toplu taşı
-- [x] Drag & drop ile dosya taşıma (tekli ve çoklu seçim destekli)
-- [x] Klasör silme (recursive)
-- [x] Sublime Text ile düzenleme senkronu (sekme focus'unda otomatik yenile)
-- [x] Cmd+S ile kaydetme
-- [x] Auto-save (localStorage) — kaydedilmemiş değişiklikler refresh sonrası korunur
-- [x] Son açık dosya ve klasör durumu hatırlama (session restore)
-- [x] Toast bildirimler (draft recovery, kaydetme onayı)
-- [x] Highlight (`==text==`), footnote, superscript, subscript desteği
-- [x] GitHub-style callout/alert rendering (`> [!NOTE]`, `> [!WARNING]` vb.)
-- [x] Heading level cycling (H1 → H2 → H3 → H4 → plain text)
-- [x] Modüler mimari (ES Modules)
-- [x] Arama
-- [x] Multi-tab / birden fazla dosya açık tutma
-- [x] Dosya yükleme (drag & drop)
-- [x] **AI Özet** — aktif dosyayı AI ile özetler, sağ panelde streaming olarak gösterir
-  - Özet localStorage'a kaydedilir (cache)
-  - Tekrar açıldığında cache'den anında yüklenir
-  - Panel dokümanın yanında açılır, içeriği overlay etmez
-- [ ] Export (PDF, HTML)
+### 1. Download & Install
 
----
+1. Grab the `.dmg` from the **[Releases](../../releases/latest)** page.
+2. Open it, drag **HakDoc** to Applications.
+3. First launch: macOS may show a security warning — go to **System Settings → Privacy & Security → Open Anyway**.
 
-## Teknik Stack
+> **Prerequisite:** [Node.js](https://nodejs.org) must be installed.
+> Already using Homebrew? `brew install node` and you're set.
 
-| Katman | Teknoloji |
+### 2. Pick Your Docs Folder
+
+On first launch, HakDoc will ask you to choose a folder. This is where it reads your files from — pick your shared docs folder, a Notes directory, or anything you like. The folder will be created if it doesn't exist.
+
+<p align="center">
+  <img src="doc/screenshots/setup.png" width="500" alt="HakDoc — first-launch setup">
+</p>
+
+You can change this anytime from **Settings** (gear icon in the sidebar).
+
+### 3. (Optional) Enable AI Summaries
+
+Open **Settings** from the gear icon in the sidebar, pick your AI provider, paste your API key, and hit Save. That's it — no config files to edit.
+
+<p align="center">
+  <img src="doc/screenshots/settings.png" width="500" alt="HakDoc — settings with AI provider">
+</p>
+
+8 providers are supported out of the box:
+
+| Provider | What you need |
 |---|---|
-| Masaüstü | Tauri v2 (Rust + WebView) |
-| Backend | Express.js (Node.js) |
-| Frontend | Vanilla JS (ES Modules), CSS custom properties |
-| Markdown | marked.js, highlight.js, mermaid.js |
-| AI | Vercel AI SDK — multi-provider |
-| İkon | macOS tarzı kabartmalı, turuncu-altın gradyan |
+| **OpenAI** | API key |
+| **Anthropic** | API key |
+| **Google AI** | API key |
+| **DeepSeek** | API key |
+| **OpenRouter** | API key |
+| **Zhipu / Z.AI** | API key |
+| **Ollama** (local) | Just a running Ollama instance |
+| **LM Studio** (local) | Just a running LM Studio server |
 
-Frontend build step'i yok — dosyalar doğrudan Express tarafından servis edilir.
+If no provider is configured, AI buttons stay hidden — nothing breaks.
+
+<details>
+<summary><strong>Prefer the command line?</strong></summary>
+
+You can also configure everything via `~/.config/hakdoc/.env`:
+
+```bash
+mkdir -p ~/.config/hakdoc
+```
+
+```bash
+# Pick one: openai | anthropic | google | ollama | deepseek | openrouter | lmstudio | zhipu
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+
+# Optional: override the default model
+OPENAI_MODEL=gpt-4o
+
+# Docs folder (also configurable from the app)
+DOCS_ROOT=/Users/yourname/Documents/dev-docs
+```
+
+See `.env.example` for all available options per provider.
+
+</details>
 
 ---
 
-## Proje Yapısı
+## Tips for Multi-Repo Workflows
 
-```
-HakDoc/
-├── server.js              # Express sunucu (API endpoints)
-├── package.json
-├── icon2.png              # App ikonu (kaynak, 1024x1024)
-├── .env.example           # AI provider konfigürasyon şablonu
-├── ai/
-│   ├── provider.js        # AI provider factory (Vercel AI SDK)
-│   ├── prompts.js         # Sistem promptları
-│   └── routes.js          # AI API route'ları (/api/ai/*)
-├── public/
-│   ├── index.html         # Ana HTML
-│   ├── favicon.png        # Browser favicon
-│   ├── style.css          # Tüm stiller
-│   └── js/
-│       ├── app.js         # Entry point, init, keyboard shortcuts
-│       ├── state.js       # Global state, localStorage, draft yönetimi
-│       ├── ai.js          # AI frontend (cache, SSE, panel yönetimi)
-│       ├── tree.js        # Dosya ağacı, drag & drop
-│       ├── editor.js      # Dosya yükleme, düzenleme, format toolbar
-│       ├── modals.js      # Modal, context menü, taşıma
-│       └── utils.js       # Utility, toast sistemi
-└── src-tauri/
-    ├── tauri.conf.json    # Tauri konfigürasyonu (app adı, port, ikon)
-    ├── Cargo.toml         # Rust bağımlılıkları
-    ├── icons/             # Tüm platform ikonları (tauri icon komutuyla üretilir)
-    └── src/
-        ├── main.rs        # Rust entry point
-        └── lib.rs         # Server spawn + Tauri builder
-```
+HakDoc was built for developers juggling docs across multiple projects. Here's a workflow that works well:
+
+1. **Create a shared docs folder** — e.g. `~/Documents/dev-docs`
+2. **Point HakDoc at it** — set it as your docs root on first launch
+3. **Symlink from each repo** — `ln -s ~/Documents/dev-docs .dontcommit/docs` in each project
+4. **Add `.dontcommit` to your global gitignore** — `echo ".dontcommit" >> ~/.config/git/ignore`
+
+Now every repo can read and write to the same folder, and HakDoc gives you a single place to browse everything.
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd + S` | Save current file |
+| `Cmd + E` | Toggle edit mode |
+| `Cmd + F` | Search files |
+| `Cmd + W` | Close current tab |
+| `Cmd + Shift + N` | New file |
+
+---
+
+## License
+
+MIT
+
+---
+
+<p align="center">
+  Built by <a href="https://github.com/hakansuluoglu">@hakansuluoglu</a>
+</p>

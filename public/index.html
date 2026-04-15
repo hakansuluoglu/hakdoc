@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,17 +16,18 @@
   <div id="app">
     <aside id="sidebar">
       <div id="sidebar-header">
-        <h2><i class="fas fa-book-open"></i> Docs</h2>
+        <h2 id="app-logo"><img src="/favicon.png" alt="HakDoc" id="app-logo-img"> HakDoc</h2>
         <div id="sidebar-actions">
-          <button onclick="createFolder()" title="Yeni Klasör"><i class="fas fa-folder-plus"></i></button>
-          <button onclick="createFile()" title="Yeni Dosya"><i class="fas fa-file-circle-plus"></i></button>
-          <button onclick="refreshTree()" title="Yenile"><i class="fas fa-sync-alt"></i></button>
+          <button onclick="createFolder()" title="New Folder"><i class="fas fa-folder-plus"></i></button>
+          <button onclick="createFile()" title="New File"><i class="fas fa-file-circle-plus"></i></button>
+          <button onclick="refreshTree()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+          <button onclick="openSettings()" title="Settings"><i class="fas fa-cog"></i></button>
         </div>
       </div>
       <div id="sidebar-search">
         <div class="search-input-wrapper">
           <i class="fas fa-search search-icon"></i>
-          <input type="text" id="search-input" placeholder="Dosyalarda ara..." autocomplete="off">
+          <input type="text" id="search-input" placeholder="Search files..." autocomplete="off">
         </div>
       </div>
       <div id="file-tree"></div>
@@ -38,50 +39,50 @@
       </div>
       <div id="empty-state">
         <i class="fas fa-file-alt" style="font-size:48px;opacity:0.3"></i>
-        <p>Bir dosya seçin veya yeni bir dosya oluşturun</p>
+        <p>Select a file or create a new one</p>
       </div>
       <div id="editor-view" style="display:none">
         <div id="editor-header">
-          <button id="toggle-sidebar" class="btn-toggle-sidebar" title="Yan menüyü aç/kapat"><i class="fas fa-bars"></i></button>
+          <button id="toggle-sidebar" class="btn-toggle-sidebar" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
           <div id="file-info">
             <span id="file-name"></span>
-            <span id="unsaved-dot" style="display:none" title="Kaydedilmemiş değişiklik"></span>
+            <span id="unsaved-dot" style="display:none" title="Unsaved changes"></span>
             <span id="file-path-display"></span>
           </div>
           <div id="editor-actions">
-            <button id="btn-edit" onclick="toggleEdit()" title="Düzenle"><i class="fas fa-pen"></i></button>
-            <button id="btn-save" onclick="saveFile()" title="Kaydet" style="display:none"><i class="fas fa-save"></i></button>
-            <button id="btn-copy" onclick="copyDocument()" title="Tümünü Kopyala"><i class="fas fa-copy"></i></button>
-            <button id="btn-ai-summarize" class="ai-feature" onclick="aiSummarize()" title="AI Ozet"><i class="fas fa-robot"></i></button>
-            <button id="btn-delete" onclick="deleteCurrent()" title="Sil"><i class="fas fa-trash"></i></button>
+            <button id="btn-edit" onclick="toggleEdit()" title="Edit"><i class="fas fa-pen"></i></button>
+            <button id="btn-save" onclick="saveFile()" title="Save" style="display:none"><i class="fas fa-save"></i></button>
+            <button id="btn-copy" onclick="copyDocument()" title="Copy All"><i class="fas fa-copy"></i></button>
+            <button id="btn-ai-summarize" class="ai-feature" onclick="aiSummarize()" title="AI Summary"><i class="fas fa-robot"></i></button>
+            <button id="btn-delete" onclick="deleteCurrent()" title="Delete"><i class="fas fa-trash"></i></button>
           </div>
         </div>
         <div id="format-toolbar" style="display:none">
-          <button onclick="insertFormat('heading')" title="Başlık (tıklayınca H1→H4 döner)"><i class="fas fa-heading"></i></button>
-          <button onclick="insertFormat('bold')" title="Kalın"><i class="fas fa-bold"></i></button>
-          <button onclick="insertFormat('italic')" title="İtalik"><i class="fas fa-italic"></i></button>
-          <button onclick="insertFormat('strikethrough')" title="Üstü çizili"><i class="fas fa-strikethrough"></i></button>
-          <button onclick="insertFormat('highlight')" title="Vurgula"><i class="fas fa-highlighter"></i></button>
+          <button onclick="insertFormat('heading')" title="Heading (cycles H1→H4→plain)"><i class="fas fa-heading"></i></button>
+          <button onclick="insertFormat('bold')" title="Bold"><i class="fas fa-bold"></i></button>
+          <button onclick="insertFormat('italic')" title="Italic"><i class="fas fa-italic"></i></button>
+          <button onclick="insertFormat('strikethrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+          <button onclick="insertFormat('highlight')" title="Highlight"><i class="fas fa-highlighter"></i></button>
           <span class="toolbar-sep"></span>
-          <button onclick="insertFormat('ul')" title="Liste"><i class="fas fa-list-ul"></i></button>
-          <button onclick="insertFormat('ol')" title="Numaralı Liste"><i class="fas fa-list-ol"></i></button>
+          <button onclick="insertFormat('ul')" title="Bullet list"><i class="fas fa-list-ul"></i></button>
+          <button onclick="insertFormat('ol')" title="Numbered list"><i class="fas fa-list-ol"></i></button>
           <button onclick="insertFormat('checklist')" title="Checklist"><i class="fas fa-tasks"></i></button>
           <span class="toolbar-sep"></span>
-          <button onclick="insertFormat('code')" title="Kod"><i class="fas fa-code"></i></button>
-          <button onclick="insertFormat('codeblock')" title="Kod Bloğu"><i class="fas fa-file-code"></i></button>
+          <button onclick="insertFormat('code')" title="Inline code"><i class="fas fa-code"></i></button>
+          <button onclick="insertFormat('codeblock')" title="Code block"><i class="fas fa-file-code"></i></button>
           <button onclick="insertFormat('link')" title="Link"><i class="fas fa-link"></i></button>
-          <button onclick="insertFormat('image')" title="Resim"><i class="fas fa-image"></i></button>
+          <button onclick="insertFormat('image')" title="Image"><i class="fas fa-image"></i></button>
           <span class="toolbar-sep"></span>
-          <button onclick="insertFormat('quote')" title="Alıntı"><i class="fas fa-quote-left"></i></button>
-          <button onclick="insertFormat('callout')" title="Callout / Uyarı"><i class="fas fa-bell"></i></button>
-          <button onclick="insertFormat('table')" title="Tablo"><i class="fas fa-table"></i></button>
+          <button onclick="insertFormat('quote')" title="Blockquote"><i class="fas fa-quote-left"></i></button>
+          <button onclick="insertFormat('callout')" title="Callout / Alert"><i class="fas fa-bell"></i></button>
+          <button onclick="insertFormat('table')" title="Table"><i class="fas fa-table"></i></button>
           <button onclick="insertFormat('mermaid')" title="Mermaid Diagram"><i class="fas fa-project-diagram"></i></button>
           <span class="toolbar-sep"></span>
-          <button onclick="insertFormat('footnote')" title="Dipnot"><i class="fas fa-asterisk"></i></button>
-          <button onclick="insertFormat('superscript')" title="Üst simge"><i class="fas fa-superscript"></i></button>
-          <button onclick="insertFormat('subscript')" title="Alt simge"><i class="fas fa-subscript"></i></button>
+          <button onclick="insertFormat('footnote')" title="Footnote"><i class="fas fa-asterisk"></i></button>
+          <button onclick="insertFormat('superscript')" title="Superscript"><i class="fas fa-superscript"></i></button>
+          <button onclick="insertFormat('subscript')" title="Subscript"><i class="fas fa-subscript"></i></button>
           <span class="toolbar-sep"></span>
-          <button onclick="insertFormat('hr')" title="Çizgi"><i class="fas fa-minus"></i></button>
+          <button onclick="insertFormat('hr')" title="Horizontal rule"><i class="fas fa-minus"></i></button>
         </div>
         <div id="markdown-preview"></div>
         <textarea id="markdown-editor" style="display:none"></textarea>
@@ -89,32 +90,32 @@
       </div>
     </main>
 
-    <!-- AI Panel — sidebar gibi flex child, dokümani sola iter -->
+    <!-- AI Panel — flex child alongside main content, pushes document left -->
     <div id="ai-panel" class="ai-panel-collapsed">
       <div id="ai-panel-header">
         <div id="ai-panel-title">
           <i class="fas fa-robot"></i>
-          <span>AI Ozet</span>
+          <span>AI Summary</span>
           <span id="ai-panel-model-info"></span>
         </div>
-        <button id="ai-panel-close-btn" onclick="closeAIPanel()" title="Kapat"><i class="fas fa-times"></i></button>
+        <button id="ai-panel-close-btn" onclick="closeAIPanel()" title="Close"><i class="fas fa-times"></i></button>
       </div>
       <div id="ai-panel-cache-bar" style="display:none">
         <i class="fas fa-clock"></i>
-        <span>Onceki ozet: <span id="ai-panel-cache-date"></span></span>
-        <button id="ai-panel-refresh-btn" onclick="aiRefreshSummary()" title="Yeni ozet olustur"><i class="fas fa-redo"></i> Yenile</button>
+        <span>Cached: <span id="ai-panel-cache-date"></span></span>
+        <button id="ai-panel-refresh-btn" onclick="aiRefreshSummary()" title="Generate new summary"><i class="fas fa-redo"></i> Refresh</button>
       </div>
       <div id="ai-panel-body">
         <div id="ai-panel-loading" style="display:none">
           <div class="ai-spinner"></div>
-          <span>Ozet hazirlaniyor...</span>
+          <span>Summarizing...</span>
         </div>
         <div id="ai-panel-error" style="display:none"></div>
         <div id="ai-panel-content" style="display:none"></div>
       </div>
       <div id="ai-panel-footer">
-        <button id="ai-panel-copy-btn" onclick="copyAISummary()" title="Kopyala"><i class="fas fa-copy"></i> Kopyala</button>
-        <button id="ai-panel-close-footer-btn" onclick="closeAIPanel()"><i class="fas fa-times"></i> Kapat</button>
+        <button id="ai-panel-copy-btn" onclick="copyAISummary()" title="Copy"><i class="fas fa-copy"></i> Copy</button>
+        <button id="ai-panel-close-footer-btn" onclick="closeAIPanel()"><i class="fas fa-times"></i> Close</button>
       </div>
     </div>
   </div>
@@ -124,43 +125,43 @@
       <h3 id="modal-title"></h3>
       <input id="modal-input" type="text" placeholder="" autocomplete="off">
       <div id="modal-buttons">
-        <button onclick="modalCancel()" class="btn-cancel">İptal</button>
-        <button onclick="modalOk()" class="btn-ok">Tamam</button>
+        <button onclick="modalCancel()" class="btn-cancel">Cancel</button>
+        <button onclick="modalOk()" class="btn-ok">OK</button>
       </div>
     </div>
   </div>
 
   <div id="tab-context-menu" style="display:none">
-    <button onclick="tabCtxClose()"><i class="fas fa-times"></i> Kapat</button>
+    <button onclick="tabCtxClose()"><i class="fas fa-times"></i> Close</button>
     <div class="ctx-sep"></div>
-    <button onclick="tabCtxCloseOthers()"><i class="fas fa-arrows-alt-h"></i> Diğerlerini Kapat</button>
-    <button onclick="tabCtxCloseRight()"><i class="fas fa-arrow-right"></i> Sağdakileri Kapat</button>
+    <button onclick="tabCtxCloseOthers()"><i class="fas fa-arrows-alt-h"></i> Close Others</button>
+    <button onclick="tabCtxCloseRight()"><i class="fas fa-arrow-right"></i> Close to the Right</button>
     <div class="ctx-sep"></div>
-    <button onclick="tabCtxCloseAll()" class="ctx-danger"><i class="fas fa-times-circle"></i> Tümünü Kapat</button>
+    <button onclick="tabCtxCloseAll()" class="ctx-danger"><i class="fas fa-times-circle"></i> Close All</button>
   </div>
 
   <div id="context-menu" style="display:none">
     <!-- Bulk mode -->
     <div id="ctx-bulk-info" class="ctx-info-label" style="display:none"></div>
-    <button id="ctx-bulk-move" onclick="ctxBulkMove()" style="display:none"><i class="fas fa-arrows-alt"></i> Seçilileri Taşı...</button>
-    <button id="ctx-bulk-delete" onclick="ctxBulkDelete()" class="ctx-danger" style="display:none"><i class="fas fa-trash"></i> Seçilileri Sil</button>
+    <button id="ctx-bulk-move" onclick="ctxBulkMove()" style="display:none"><i class="fas fa-arrows-alt"></i> Move Selected...</button>
+    <button id="ctx-bulk-delete" onclick="ctxBulkDelete()" class="ctx-danger" style="display:none"><i class="fas fa-trash"></i> Delete Selected</button>
     <!-- Single mode -->
-    <button id="ctx-new-file" onclick="ctxNewFile()"><i class="fas fa-file-circle-plus"></i> Yeni Dosya</button>
-    <button id="ctx-new-folder" onclick="ctxNewFolder()"><i class="fas fa-folder-plus"></i> Yeni Klasör</button>
+    <button id="ctx-new-file" onclick="ctxNewFile()"><i class="fas fa-file-circle-plus"></i> New File</button>
+    <button id="ctx-new-folder" onclick="ctxNewFolder()"><i class="fas fa-folder-plus"></i> New Folder</button>
     <div id="ctx-sep-1" class="ctx-sep"></div>
-    <button id="ctx-rename" onclick="ctxRename()"><i class="fas fa-pen"></i> Yeniden Adlandır</button>
-    <button id="ctx-move" onclick="ctxMove()"><i class="fas fa-arrows-alt"></i> Taşı...</button>
+    <button id="ctx-rename" onclick="ctxRename()"><i class="fas fa-pen"></i> Rename</button>
+    <button id="ctx-move" onclick="ctxMove()"><i class="fas fa-arrows-alt"></i> Move...</button>
     <div class="ctx-sep"></div>
-    <button id="ctx-delete" onclick="ctxDelete()" class="ctx-danger"><i class="fas fa-trash"></i> Sil</button>
+    <button id="ctx-delete" onclick="ctxDelete()" class="ctx-danger"><i class="fas fa-trash"></i> Delete</button>
   </div>
 
   <div id="move-modal-overlay" style="display:none">
     <div id="move-modal">
-      <h3>Taşıma Hedefi Seç</h3>
+      <h3>Select Destination</h3>
       <div id="move-tree"></div>
       <div id="move-modal-buttons">
-        <button onclick="moveModalCancel()" class="btn-cancel">İptal</button>
-        <button onclick="moveModalOk()" class="btn-ok">Taşı</button>
+        <button onclick="moveModalCancel()" class="btn-cancel">Cancel</button>
+        <button onclick="moveModalOk()" class="btn-ok">Move</button>
       </div>
     </div>
   </div>
@@ -168,12 +169,91 @@
   <div id="drop-overlay" style="display:none">
     <div class="drop-message">
       <i class="fas fa-cloud-upload-alt"></i>
-      <h2>Dosyaları buraya bırakın</h2>
+      <h2>Drop files here</h2>
     </div>
   </div>
 
   <!-- Toast Notifications -->
   <div id="toast-container"></div>
+
+  <!-- Confirm Dialog -->
+  <div id="confirm-overlay" style="display:none">
+    <div id="confirm-dialog">
+      <p id="confirm-message"></p>
+      <div id="confirm-actions">
+        <button id="confirm-cancel">Cancel</button>
+        <button id="confirm-ok" class="confirm-destructive">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-overlay" style="display:none">
+    <div id="settings-modal">
+      <div id="settings-header">
+        <h2><i class="fas fa-cog"></i> Settings</h2>
+        <button id="settings-close-btn" onclick="closeSettings()" title="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="settings-body">
+        <!-- General Section -->
+        <section class="settings-section">
+          <h3><i class="fas fa-folder-open"></i> Documents Folder</h3>
+          <div class="settings-field">
+            <label>Current path</label>
+            <div class="settings-input-row">
+              <input type="text" id="settings-docs-root" readonly spellcheck="false">
+              <button id="settings-browse-btn" onclick="settingsBrowse()" title="Browse"><i class="fas fa-folder-open"></i></button>
+            </div>
+            <p class="settings-hint">Changing this folder will clear cached tabs, drafts, and AI summaries.</p>
+          </div>
+        </section>
+
+        <!-- AI Language Section -->
+        <section class="settings-section">
+          <h3><i class="fas fa-language"></i> AI Response Language</h3>
+          <div class="settings-field">
+            <label>Language</label>
+            <div class="settings-language-grid" id="settings-language-grid">
+              <!-- Populated by settings.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- AI Provider Section -->
+        <section class="settings-section">
+          <h3><i class="fas fa-robot"></i> AI Provider</h3>
+          <div class="settings-field">
+            <label>Active provider</label>
+            <div class="settings-provider-grid" id="settings-provider-grid">
+              <!-- Populated by settings.js -->
+            </div>
+          </div>
+          <div id="settings-provider-config" style="display:none">
+            <!-- Dynamic fields populated by settings.js -->
+          </div>
+        </section>
+      </div>
+      <div id="settings-footer">
+        <button onclick="closeSettings()" class="btn-cancel">Cancel</button>
+        <button onclick="saveSettings()" class="btn-ok"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- First-launch Setup Overlay -->
+  <div id="setup-overlay" style="display:none">
+    <div id="setup-modal">
+      <div id="setup-icon"><img src="/favicon.png" alt="HakDoc" style="width:64px;height:64px;border-radius:14px;"></div>
+      <h2>Welcome to HakDoc</h2>
+      <p>Choose a folder where your documents will be stored.</p>
+      <div id="setup-input-row">
+        <input type="text" id="setup-path" placeholder="e.g. /Users/yourname/Documents/docs" autocomplete="off" spellcheck="false">
+        <button id="setup-browse-btn" onclick="setupBrowse()" title="Browse"><i class="fas fa-folder-open"></i></button>
+      </div>
+      <p class="setup-hint">The folder will be created if it does not exist.</p>
+      <button id="setup-save-btn" onclick="setupSave()">Get Started</button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>

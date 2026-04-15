@@ -1,4 +1,4 @@
-// .env: önce ~/.config/hakdoc/.env'e bak, yoksa proje kök .env'i kullan
+// Load .env: prefer ~/.config/hakdoc/.env, fall back to project root .env
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -15,20 +15,173 @@ const multer = require('multer');
 const app = express();
 const PORT = process.env.PORT || 14296;
 
-const DOCS_ROOT = process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/xx_hakdoc');
+let DOCS_ROOT = process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/hakdoc');
 const upload = multer({ dest: path.join(os.tmpdir(), 'docwebapp_uploads') });
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/raw', express.static(DOCS_ROOT));
+
+// Dynamic /raw middleware — re-resolves DOCS_ROOT on every request
+// so it stays correct after POST /api/config changes the folder.
+app.use('/raw', (req, res, next) => {
+  express.static(DOCS_ROOT)(req, res, next);
+});
 
 // ─── AI Route'lari ───────────────────────────────────────────────────────────
 const aiRoutes = require('./ai/routes');
 app.use('/api/ai', aiRoutes);
 
 function isHidden(name) {
-  return name.startsWith('.') || name === 'DocWebApp';
+  return name.startsWith('.');
 }
+
+// ─── Config API ──────────────────────────────────────────────────────────────
+app.get('/api/config', (req, res) => {
+  res.json({
+    docsRoot: DOCS_ROOT,
+    needsSetup: !fs.existsSync(DOCS_ROOT)
+  });
+});
+
+app.post('/api/config', (req, res) => {
+  const { docsRoot } = req.body;
+  if (!docsRoot || typeof docsRoot !== 'string') {
+    return res.status(400).json({ error: 'docsRoot is required' });
+  }
+  const expanded = docsRoot.replace(/^~/, os.homedir());
+  try {
+    if (!fs.existsSync(expanded)) {
+      fs.mkdirSync(expanded, { recursive: true });
+    }
+    const configDir = path.join(os.homedir(), '.config', 'hakdoc');
+    if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+    const envPath = path.join(configDir, '.env');
+    const envVars = _readEnvFile(envPath);
+    envVars.DOCS_ROOT = expanded;
+    _writeEnvFile(envPath, envVars);
+    DOCS_ROOT = expanded;
+    process.env.DOCS_ROOT = expanded;
+    res.json({ success: true, docsRoot: DOCS_ROOT });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Settings API ────────────────────────────────────────────────────────────
+const HAKDOC_ENV_PATH = path.join(os.homedir(), '.config', 'hakdoc', '.env');
+
+// Provider definitions — which env vars each provider needs
+const PROVIDER_DEFS = {
+  openai:      { fields: ['OPENAI_API_KEY', 'OPENAI_MODEL'], defaults: { OPENAI_MODEL: 'gpt-4o-mini' } },
+  anthropic:   { fields: ['ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL'], defaults: { ANTHROPIC_MODEL: 'claude-sonnet-4-20250514' } },
+  google:      { fields: ['GOOGLE_API_KEY', 'GOOGLE_MODEL'], defaults: { GOOGLE_MODEL: 'gemini-2.0-flash' } },
+  ollama:      { fields: ['OLLAMA_BASE_URL', 'OLLAMA_MODEL'], defaults: { OLLAMA_BASE_URL: 'http://localhost:11434', OLLAMA_MODEL: 'llama3.2' } },
+  lmstudio:    { fields: ['LMSTUDIO_BASE_URL', 'LMSTUDIO_MODEL'], defaults: { LMSTUDIO_BASE_URL: 'http://localhost:1234/v1', LMSTUDIO_MODEL: 'local-model' } },
+  deepseek:    { fields: ['DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL'], defaults: { DEEPSEEK_MODEL: 'deepseek-chat' } },
+  openrouter:  { fields: ['OPENROUTER_API_KEY', 'OPENROUTER_MODEL'], defaults: { OPENROUTER_MODEL: 'meta-llama/llama-3-70b-instruct' } },
+  zhipu:       { fields: ['ZHIPU_API_KEY', 'ZHIPU_BASE_URL', 'ZHIPU_MODEL'], defaults: { ZHIPU_MODEL: 'GLM-4.7-FlashX' } },
+};
+
+/**
+ * Read a .env file into an object. Handles comments and empty lines.
+ */
+function _readEnvFile(filePath) {
+  const vars = {};
+  if (!fs.existsSync(filePath)) return vars;
+  const lines = fs.readFileSync(filePath, 'utf-8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    vars[key] = val;
+  }
+  return vars;
+}
+
+/**
+ * Write an object of key=value pairs to a .env file.
+ */
+function _writeEnvFile(filePath, vars) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const lines = Object.entries(vars)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${v}`);
+  fs.writeFileSync(filePath, lines.join('\n') + '\n', 'utf-8');
+}
+
+app.get('/api/settings', (req, res) => {
+  try {
+    const envVars = _readEnvFile(HAKDOC_ENV_PATH);
+    const activeProvider = (envVars.AI_PROVIDER || '').toLowerCase().trim();
+
+    // Build per-provider saved config
+    const providers = {};
+    for (const [name, def] of Object.entries(PROVIDER_DEFS)) {
+      const config = {};
+      for (const field of def.fields) {
+        config[field] = envVars[field] || def.defaults[field] || '';
+      }
+      providers[name] = config;
+    }
+
+    res.json({
+      docsRoot: DOCS_ROOT,
+      activeProvider: activeProvider || '',
+      providers,
+      providerDefs: PROVIDER_DEFS,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/settings', (req, res) => {
+  const { docsRoot, activeProvider, providerConfigs } = req.body;
+  try {
+    const envVars = _readEnvFile(HAKDOC_ENV_PATH);
+
+    // Update DOCS_ROOT if provided
+    if (docsRoot && typeof docsRoot === 'string') {
+      const expanded = docsRoot.replace(/^~/, os.homedir());
+      if (!fs.existsSync(expanded)) {
+        fs.mkdirSync(expanded, { recursive: true });
+      }
+      DOCS_ROOT = expanded;
+      process.env.DOCS_ROOT = expanded;
+      envVars.DOCS_ROOT = expanded;
+    }
+
+    // Update AI provider
+    if (typeof activeProvider === 'string') {
+      envVars.AI_PROVIDER = activeProvider;
+      process.env.AI_PROVIDER = activeProvider;
+    }
+
+    // Update provider-specific configs
+    if (providerConfigs && typeof providerConfigs === 'object') {
+      for (const [providerName, config] of Object.entries(providerConfigs)) {
+        const def = PROVIDER_DEFS[providerName];
+        if (!def) continue;
+        for (const field of def.fields) {
+          if (config[field] !== undefined) {
+            envVars[field] = config[field];
+            process.env[field] = config[field];
+          }
+        }
+      }
+    }
+
+    _writeEnvFile(HAKDOC_ENV_PATH, envVars);
+
+    res.json({ success: true, docsRoot: DOCS_ROOT });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 function buildTree(dirPath, relativeTo) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });

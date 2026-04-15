@@ -1,6 +1,6 @@
 {
-  "name": "doc-webapp",
-  "version": "1.0.0",
+  "name": "hakdoc",
+  "version": "0.1.0",
   "description": "Local document viewer with markdown support",
   "main": "server.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "tauri": "tauri",
     "tauri:dev": "HAKDOC_PORT=14297 npx tauri dev --config src-tauri/tauri.dev.conf.json",
     "tauri:build": "tauri build",
-    "tauri:icon": "tauri icon icon.png"
+    "tauri:icon": "tauri icon icon.png",
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.53",

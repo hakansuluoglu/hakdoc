@@ -84,6 +84,35 @@ export function showToast(message, options = {}) {
   return toast;
 }
 
+// ─── Confirm Dialog ────────────────────────────────────────────────
+export function showConfirm(message, okLabel = 'Delete') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirm-overlay');
+    const msgEl   = document.getElementById('confirm-message');
+    const okBtn   = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+
+    msgEl.textContent = message;
+    okBtn.textContent = okLabel;
+    overlay.style.display = 'flex';
+
+    function finish(result) {
+      overlay.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onBackdrop);
+      resolve(result);
+    }
+    function onOk()      { finish(true); }
+    function onCancel()  { finish(false); }
+    function onBackdrop(e) { if (e.target === overlay) finish(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onBackdrop);
+  });
+}
+
 function dismissToast(toast) {
   if (!toast || !toast.parentElement) return;
   toast.classList.remove('toast-visible');

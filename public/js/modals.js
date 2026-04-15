@@ -9,7 +9,7 @@ import {
 } from './state.js';
 import { refreshTree } from './tree.js';
 import { loadFile, toggleEdit } from './editor.js';
-import { showToast } from './utils.js';
+import { showToast, showConfirm } from './utils.js';
 
 // ─── Generic Modal ──────────────────────────────────────────────────
 export function showModal(title, placeholder, value, callback) {
@@ -41,7 +41,7 @@ export function modalCancel() {
 
 // ─── Create Folder / File ───────────────────────────────────────────
 export function createFolder(parentPath) {
-  showModal('Yeni Klasör', 'Klasör adı', '', (name) => {
+  showModal('New Folder', 'Folder name', '', (name) => {
     if (!name) return;
     const folderPath = parentPath ? parentPath + '/' + name : name;
     fetch('/api/folder', {
@@ -53,7 +53,7 @@ export function createFolder(parentPath) {
 }
 
 export function createFile(parentPath) {
-  showModal('Yeni Dosya', 'Dosya adı', '', (name) => {
+  showModal('New File', 'File name', '', (name) => {
     if (!name) return;
     if (!name.includes('.')) name += '.md';
     const filePath = parentPath ? parentPath + '/' + name : name;
@@ -96,7 +96,7 @@ export function showContextMenu(e, itemPath, itemType) {
     ctxSep1.style.display = 'none';
 
     ctxBulkInfo.style.display = '';
-    ctxBulkInfo.textContent = `${selectedPaths.size} öğe seçildi`;
+    ctxBulkInfo.textContent = `${selectedPaths.size} items selected`;
     ctxBulkMove.style.display = '';
     ctxBulkDelete.style.display = '';
   } else {
@@ -160,7 +160,7 @@ export function ctxNewFolder() {
 export function ctxRename() {
   document.getElementById('context-menu').style.display = 'none';
   const oldName = ctxTargetPath.includes('/') ? ctxTargetPath.split('/').pop() : ctxTargetPath;
-  showModal('Yeniden Adlandır', 'Yeni ad', oldName, async (newName) => {
+  showModal('Rename', 'New name', oldName, async (newName) => {
     if (!newName || newName === oldName) return;
     try {
       const res = await fetch('/api/rename', {
@@ -190,13 +190,13 @@ export function ctxMove() {
   showMoveModal(false);
 }
 
-export function ctxDelete() {
+export async function ctxDelete() {
   document.getElementById('context-menu').style.display = 'none';
   const isFolder = ctxTargetType === 'folder';
   const msg = isFolder
-    ? 'Bu klasörü ve içindeki her şeyi silmek istediğinize emin misiniz?'
-    : 'Bu dosyayı silmek istediğinize emin misiniz?';
-  if (!confirm(msg)) return;
+    ? 'Are you sure you want to delete this folder and all its contents?'
+    : 'Are you sure you want to delete this file?';
+  if (!await showConfirm(msg)) return;
   fetch('/api/file?path=' + encodeURIComponent(ctxTargetPath), { method: 'DELETE' })
     .then(() => {
       if (currentFilePath === ctxTargetPath || (isFolder && currentFilePath && currentFilePath.startsWith(ctxTargetPath + '/'))) {
@@ -214,7 +214,7 @@ export async function ctxBulkDelete() {
   document.getElementById('context-menu').style.display = 'none';
   const paths = [...selectedPaths];
   if (paths.length === 0) return;
-  if (!confirm(`${paths.length} öğeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+  if (!await showConfirm(`Delete ${paths.length} items? This cannot be undone.`)) return;
 
   try {
     const res = await fetch('/api/bulk-delete', {
@@ -236,13 +236,13 @@ export async function ctxBulkDelete() {
     await refreshTree();
 
     if (data.failed && data.failed.length > 0) {
-      showToast(`${paths.length - data.failed.length} dosya silindi, ${data.failed.length} tanesi başarısız.`, { type: 'warning' });
+      showToast(`${paths.length - data.failed.length} deleted, ${data.failed.length} failed.`, { type: 'warning' });
     } else {
-      showToast(`${paths.length} öğe silindi.`, { type: 'success' });
+      showToast(`${paths.length} items deleted.`, { type: 'success' });
     }
   } catch (err) {
     console.error('Bulk delete error:', err);
-    showToast('Toplu silme hatası: ' + err.message, { type: 'error' });
+    showToast('Bulk delete error: ' + err.message, { type: 'error' });
   }
 }
 
@@ -269,13 +269,13 @@ async function showMoveModal(isBulk) {
     const h3 = document.querySelector('#move-modal h3');
     if (h3) {
       h3.textContent = isBulk
-        ? `${[...selectedPaths].length} Öğeyi Taşı — Hedef Seç`
-        : 'Taşıma Hedefi Seç';
+        ? `Move ${[...selectedPaths].length} Items — Select Destination`
+        : 'Select Destination';
     }
 
     const rootItem = document.createElement('div');
     rootItem.className = 'move-tree-item selected';
-    rootItem.innerHTML = '<span class="move-icon"><i class="fas fa-home"></i></span> Kök Dizin';
+    rootItem.innerHTML = '<span class="move-icon"><i class="fas fa-home"></i></span> Root';
     rootItem.addEventListener('click', () => {
       container.querySelectorAll('.move-tree-item').forEach(el => el.classList.remove('selected'));
       rootItem.classList.add('selected');
@@ -372,13 +372,13 @@ export async function moveModalOk() {
       await refreshTree();
 
       if (data.failed && data.failed.length > 0) {
-        showToast(`${moveSourcePaths.length - data.failed.length} taşındı, ${data.failed.length} başarısız.`, { type: 'warning' });
+        showToast(`${moveSourcePaths.length - data.failed.length} moved, ${data.failed.length} failed.`, { type: 'warning' });
       } else {
-        showToast(`${moveSourcePaths.length} öğe taşındı.`, { type: 'success' });
+        showToast(`${moveSourcePaths.length} items moved.`, { type: 'success' });
       }
     } catch (err) {
       console.error('Bulk move error:', err);
-      showToast('Toplu taşıma hatası: ' + err.message, { type: 'error' });
+      showToast('Bulk move error: ' + err.message, { type: 'error' });
     }
     return;
   }
@@ -404,7 +404,7 @@ export async function moveFileTo(sourcePath, targetFolder) {
     });
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch { throw new Error('Sunucu yanıtı: ' + res.status + ' - ' + text.substring(0, 200)); }
+    try { data = JSON.parse(text); } catch { throw new Error('Server response: ' + res.status + ' - ' + text.substring(0, 200)); }
     if (data.success) {
       if (currentFilePath === sourcePath) {
         setActiveTabPath(data.newPath);
@@ -412,11 +412,11 @@ export async function moveFileTo(sourcePath, targetFolder) {
       }
       refreshTree();
     } else {
-      alert(data.error || 'Taşıma başarısız');
+      alert(data.error || 'Move failed');
     }
   } catch (err) {
     console.error('Move error:', err);
-    alert('Taşıma hatası: ' + err.message);
+    alert('Move error: ' + err.message);
   }
 }
 
@@ -442,12 +442,12 @@ export async function bulkMoveFiles(paths, targetFolder) {
     await refreshTree();
 
     if (data.failed && data.failed.length > 0) {
-      showToast(`${paths.length - data.failed.length} taşındı, ${data.failed.length} başarısız.`, { type: 'warning' });
+      showToast(`${paths.length - data.failed.length} moved, ${data.failed.length} failed.`, { type: 'warning' });
     } else {
-      showToast(`${paths.length} öğe taşındı.`, { type: 'success' });
+      showToast(`${paths.length} items moved.`, { type: 'success' });
     }
   } catch (err) {
     console.error('Bulk drag-drop move error:', err);
-    showToast('Toplu taşıma hatası: ' + err.message, { type: 'error' });
+    showToast('Bulk move error: ' + err.message, { type: 'error' });
   }
 }

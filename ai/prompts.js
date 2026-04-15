@@ -2,23 +2,40 @@
 'use strict';
 
 /**
- * Dokuman ozeti icin system prompt.
+ * Desteklenen dil kodlari ve karsiliklari.
  */
-const SUMMARIZE_SYSTEM_PROMPT = `Sen bir dokuman ozet cikarma asistaninsin.
-Verilen dokumani analiz et ve asagidaki formatta ozetle:
+const LANGUAGE_NAMES = {
+  tr: 'Turkish',
+  en: 'English',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  ja: 'Japanese',
+};
 
-## Ozet
-[2-3 cumlelik genel ozet]
+/**
+ * Dokuman ozeti icin system prompt — dile gore dinamik.
+ * @param {string} langCode - 'tr' | 'en' | 'de' | 'fr' | 'es' | 'ja'
+ * @returns {string}
+ */
+function buildSummarizeSystemPrompt(langCode) {
+  const language = LANGUAGE_NAMES[langCode] || 'Turkish';
+  return `You are a document summarization assistant.
+Analyze the given document and summarize it in the following format:
 
-## Ana Noktalar
-- [Madde 1]
-- [Madde 2]
-- [Madde 3]
+## Summary
+[2-3 sentence general summary]
 
-## Anahtar Kelimeler
-[virgülle ayrilmis anahtar kelimeler]
+## Key Points
+- [Point 1]
+- [Point 2]
+- [Point 3]
 
-Ozetini Türkçe yaz. Kisaca ve net ol. Sadece icerikteki bilgileri kullan.`;
+## Keywords
+[comma-separated keywords]
+
+IMPORTANT: Write your entire response in ${language}. Be concise and clear. Only use information from the document content.`;
+}
 
 /**
  * Dokuman ozeti icin user mesaji olusturur.
@@ -27,10 +44,10 @@ Ozetini Türkçe yaz. Kisaca ve net ol. Sadece icerikteki bilgileri kullan.`;
  * @returns {string}
  */
 function buildSummarizePrompt(content, fileName) {
-  return `Asagidaki dokumani ozetle:\n\nDosya: ${fileName}\n\n---\n\n${content}`;
+  return `Summarize the following document:\n\nFile: ${fileName}\n\n---\n\n${content}`;
 }
 
 module.exports = {
-  SUMMARIZE_SYSTEM_PROMPT,
+  buildSummarizeSystemPrompt,
   buildSummarizePrompt,
 };

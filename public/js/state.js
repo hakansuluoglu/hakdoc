@@ -150,6 +150,17 @@ export function getLastOpenFile() {
   return localStorage.getItem('docwebapp:lastFile');
 }
 
+// ─── AI Language Preference ──────────────────────────────────────────────────
+const AI_LANGUAGE_KEY = 'docwebapp:ai:language';
+
+export function getAILanguage() {
+  return localStorage.getItem(AI_LANGUAGE_KEY) || 'tr';
+}
+
+export function setAILanguage(code) {
+  localStorage.setItem(AI_LANGUAGE_KEY, code);
+}
+
 // ─── Draft Management ───────────────────────────────────────────────
 const DRAFT_PREFIX = 'docwebapp:draft:';
 

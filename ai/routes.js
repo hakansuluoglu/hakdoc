@@ -4,15 +4,18 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { streamText } = require('ai');
 const { getAIProvider } = require('./provider');
-const { SUMMARIZE_SYSTEM_PROMPT, buildSummarizePrompt } = require('./prompts');
+const { buildSummarizeSystemPrompt, buildSummarizePrompt } = require('./prompts');
 
 const router = express.Router();
 
-// DOCS_ROOT'u server.js'den alabilmek icin env'den okuyoruz
-const os = require('os');
-const DOCS_ROOT = process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/xx_hakdoc');
+// Read DOCS_ROOT dynamically on each request so it stays current
+// after POST /api/config updates it at runtime.
+function getDocsRoot() {
+  return process.env.DOCS_ROOT || path.join(os.homedir(), 'Documents/hakdoc');
+}
 
 // ─── GET /api/ai/status ───────────────────────────────────────────────────────
 // Frontend'in AI ozelliklerini gosterip gostermeyecegini belirler.
@@ -31,15 +34,17 @@ router.get('/status', (req, res) => {
 // ─── POST /api/ai/summarize ───────────────────────────────────────────────────
 // Dosyayi okur, AI ile ozetler, SSE uzerinden stream eder.
 router.post('/summarize', async (req, res) => {
-  const { filePath } = req.body;
+  const { filePath, language } = req.body;
+  console.log('[AI] summarize request — language:', language, '| filePath:', filePath);
 
   if (!filePath) {
     return res.status(400).json({ error: 'filePath gerekli' });
   }
 
   // Path traversal korunma
-  const fullPath = path.join(DOCS_ROOT, filePath);
-  if (!fullPath.startsWith(DOCS_ROOT)) {
+  const docsRoot = getDocsRoot();
+  const fullPath = path.join(docsRoot, filePath);
+  if (!fullPath.startsWith(docsRoot)) {
     return res.status(403).json({ error: 'Erisim reddedildi' });
   }
 
@@ -72,10 +77,11 @@ router.post('/summarize', async (req, res) => {
   try {
     const fileName = path.basename(fullPath);
     const userMessage = buildSummarizePrompt(content, fileName);
+    const systemPrompt = buildSummarizeSystemPrompt(language || 'tr');
 
     const result = await streamText({
       model: ai.model,
-      system: SUMMARIZE_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
       maxTokens: 1024,
     });

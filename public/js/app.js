@@ -15,6 +15,7 @@ import {
   moveModalOk, moveModalCancel
 } from './modals.js';
 import { initAI, aiSummarize, aiRefreshSummary, closeAIPanel, copyAISummary } from './ai.js';
+import { openSettings, closeSettings, saveSettings, settingsBrowse } from './settings.js';
 
 // ─── Expose functions to window for onclick handlers ────────────────
 globalThis.toggleEdit = toggleEdit;
@@ -39,6 +40,62 @@ globalThis.aiSummarize = aiSummarize;
 globalThis.aiRefreshSummary = aiRefreshSummary;
 globalThis.closeAIPanel = closeAIPanel;
 globalThis.copyAISummary = copyAISummary;
+globalThis.openSettings = openSettings;
+globalThis.closeSettings = closeSettings;
+globalThis.saveSettings = saveSettings;
+globalThis.settingsBrowse = settingsBrowse;
+
+// ─── First-launch Setup ─────────────────────────────────────────────
+async function checkSetup() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    if (data.needsSetup) {
+      document.getElementById('setup-path').value = data.docsRoot || '';
+      document.getElementById('setup-overlay').style.display = 'flex';
+      return false;
+    }
+  } catch (_) {}
+  return true;
+}
+
+globalThis.setupBrowse = async function() {
+  // Use Tauri native folder picker when available, otherwise let user type
+  if (window.__TAURI__?.core) {
+    try {
+      const chosen = await window.__TAURI__.core.invoke('pick_folder');
+      if (chosen) document.getElementById('setup-path').value = chosen;
+      return;
+    } catch (_) {}
+  }
+  // Fallback: focus the input for manual entry
+  document.getElementById('setup-path').focus();
+};
+
+globalThis.setupSave = async function() {
+  const docsRoot = document.getElementById('setup-path').value.trim();
+  if (!docsRoot) return;
+  const btn = document.getElementById('setup-save-btn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docsRoot })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('setup-overlay').style.display = 'none';
+      await refreshTree();
+    } else {
+      alert(data.error || 'Failed to save config');
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false;
+  }
+};
 
 // ─── Initialization ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -46,12 +103,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMermaid();
   initMarked();
 
+  // Check if docs folder is configured
+  const ready = await checkSetup();
+  if (!ready) return;
+
   // Restore session state
   restoreExpandedFolders();
   restoreSidebarState();
   restoreOpenTabs();
 
-  // AI durumunu kontrol et (hata durumunda sessizce devam eder)
+  // Check AI status (silently continues on error)
   await initAI();
 
   // Load file tree
@@ -94,7 +155,9 @@ function setupKeyboardShortcuts() {
       if (currentFilePath) toggleEdit();
     }
     if (e.key === 'Escape') {
-      if (document.getElementById('modal-overlay').style.display !== 'none') {
+      if (document.getElementById('settings-overlay').style.display !== 'none') {
+        closeSettings();
+      } else if (document.getElementById('modal-overlay').style.display !== 'none') {
         modalCancel();
       } else if (isEditing) {
         toggleEdit();
@@ -152,7 +215,7 @@ function setupSearch() {
         searchResults.innerHTML = '';
         
         if (data.results.length === 0) {
-          searchResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); text-align: center;">Sonuç bulunamadı</div>';
+          searchResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); text-align: center;">No results found</div>';
           return;
         }
         
