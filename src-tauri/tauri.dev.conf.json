@@ -1,0 +1,12 @@
+{
+  "build": {
+    "devUrl": "http://localhost:14297"
+  },
+  "app": {
+    "windows": [
+      {
+        "url": "http://localhost:14297"
+      }
+    ]
+  }
+}

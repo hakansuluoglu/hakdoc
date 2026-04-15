@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #1c1b1f; /* WebView yüklenmeden önce native title bar alanını renklendir */
+}
+
 :root {
   /* Material 3 Dark Theme */
   --md-bg:           #0f0e13;       /* background */
@@ -95,11 +99,17 @@ body {
 }
 
 #sidebar-header {
-  padding: 14px 16px;
+  padding: 6px 16px 10px 80px; /* sol: traffic light boşluğu, üst: ince boşluk */
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+#sidebar-header button,
+#sidebar-header h2 {
+  -webkit-app-region: no-drag;
 }
 
 #sidebar-header h2 {

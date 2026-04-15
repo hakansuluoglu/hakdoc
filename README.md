@@ -59,21 +59,33 @@ Node.js farklı bir yere kurulduysa [src-tauri/src/lib.rs](src-tauri/src/lib.rs)
 
 ---
 
-## Geliştirme (browser)
+## Geliştirme
+
+Prod DMG (14296) ile çakışmamak için dev ortamı **14297** portunda çalışır.
+
+| Komut | Port | Açıklama |
+|---|---|---|
+| `npm run dev` | 14297 | Sadece backend — tarayıcıda aç (en hızlı) |
+| `npm run tauri:dev` | 14297 | Tauri dev penceresi — Tauri davranışı test için |
+| `npm start` | 14296 | Prod backend (DMG ile aynı) |
+
+### Browser geliştirme (önerilen)
 
 ```bash
-npm start
+npm run dev
 ```
 
-Tarayıcıda [http://localhost:14296](http://localhost:14296) açılır.
+Sunucu 14297'de başlar. Tarayıcıda [http://localhost:14297](http://localhost:14297) aç. Dosyayı kaydet → Cmd+R ile yenile. Kurulu DMG ile aynı anda çalışır, çakışma yok.
 
-### Tauri geliştirme modu
+### Tauri geliştirme penceresi
 
 ```bash
-npx tauri dev
+npm run tauri:dev
 ```
 
-Express sunucuyu otomatik başlatır ve Tauri penceresinde açar. Hot reload yok, kod değişikliği sonrası `tauri dev`'i yeniden başlatmak gerekir.
+14297 portunda ayrı bir Tauri penceresi açar. `src-tauri/tauri.dev.conf.json` kullanır, prod config'i (`tauri.conf.json`) etkilemez. İlk çalıştırmada Rust derleme gerekir (~birkaç dakika), sonrakiler hızlı.
+
+> Hot reload yok — kod değişikliği sonrası tarayıcıda Cmd+R ya da `tauri:dev`'i yeniden başlat.
 
 ---
 

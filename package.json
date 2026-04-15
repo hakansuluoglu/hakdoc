@@ -5,8 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "PORT=14297 node server.js",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "HAKDOC_PORT=14297 npx tauri dev --config src-tauri/tauri.dev.conf.json",
     "tauri:build": "tauri build",
     "tauri:icon": "tauri icon icon.png"
   },
