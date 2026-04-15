@@ -5,6 +5,7 @@
 'use strict';
 
 const { createZhipu } = require('zhipu-ai-provider');
+const { createOpenAI } = require('@ai-sdk/openai');
 
 /**
  * Aktif AI provider'i ve model bilgisini dondurur.
@@ -41,7 +42,23 @@ function getAIProvider() {
       // case 'google': { ... }
       // case 'anthropic': { ... }
       // case 'ollama': { ... }
-      // case 'lmstudio': { ... }
+
+      case 'lmstudio': {
+        const baseURL = process.env.LMSTUDIO_BASE_URL || 'http://localhost:1234/v1';
+        const modelName = process.env.LMSTUDIO_MODEL || 'local-model';
+
+        const lmstudio = createOpenAI({
+          baseURL,
+          apiKey: 'lm-studio', // LM Studio API key gerektirmez, herhangi bir deger olabilir
+        });
+
+        return {
+          model: lmstudio(modelName),
+          providerName: 'lmstudio',
+          modelName,
+        };
+      }
+
       // case 'deepseek': { ... }
       // case 'openrouter': { ... }
 

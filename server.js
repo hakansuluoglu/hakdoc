@@ -1,9 +1,15 @@
-require('dotenv').config();
+// .env: önce ~/.config/hakdoc/.env'e bak, yoksa proje kök .env'i kullan
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const _hakdocEnvPath = path.join(os.homedir(), '.config', 'hakdoc', '.env');
+if (fs.existsSync(_hakdocEnvPath)) {
+  require('dotenv').config({ path: _hakdocEnvPath });
+} else {
+  require('dotenv').config();
+}
 
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
 const multer = require('multer');
 
 const app = express();
