@@ -11,6 +11,7 @@ import {
   createFolder, createFile,
   setupContextMenuClose,
   ctxNewFile, ctxNewFolder, ctxRename, ctxMove, ctxDelete,
+  ctxBulkDelete, ctxBulkMove,
   moveModalOk, moveModalCancel
 } from './modals.js';
 
@@ -29,6 +30,8 @@ globalThis.ctxNewFolder = ctxNewFolder;
 globalThis.ctxRename = ctxRename;
 globalThis.ctxMove = ctxMove;
 globalThis.ctxDelete = ctxDelete;
+globalThis.ctxBulkDelete = ctxBulkDelete;
+globalThis.ctxBulkMove = ctxBulkMove;
 globalThis.moveModalOk = moveModalOk;
 globalThis.moveModalCancel = moveModalCancel;
 

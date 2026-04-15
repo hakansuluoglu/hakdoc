@@ -1,12 +1,15 @@
 // ─── Modals & Context Menu ──────────────────────────────────────────
 import {
   currentFilePath, isEditing, modalCallback,
-  ctxTargetPath, ctxTargetType, moveSourcePath, moveSelectedFolder,
+  ctxTargetPath, ctxTargetType, moveSourcePath, moveSourcePaths,
+  selectedPaths,
   setActiveTabPath, setModalCallback, setCtxTarget,
-  setMoveSourcePath, setMoveSelectedFolder, setMoveTreeData, clearDraft
+  setMoveSourcePath, setMoveSourcePaths, setMoveSelectedFolder, setMoveTreeData, clearDraft,
+  clearSelection
 } from './state.js';
 import { refreshTree } from './tree.js';
 import { loadFile, toggleEdit } from './editor.js';
+import { showToast } from './utils.js';
 
 // ─── Generic Modal ──────────────────────────────────────────────────
 export function showModal(title, placeholder, value, callback) {
@@ -75,17 +78,47 @@ export function showContextMenu(e, itemPath, itemType) {
   const ctxNewFolder = document.getElementById('ctx-new-folder');
   const ctxRename = document.getElementById('ctx-rename');
   const ctxMove = document.getElementById('ctx-move');
+  const ctxDelete = document.getElementById('ctx-delete');
+  const ctxBulkInfo = document.getElementById('ctx-bulk-info');
+  const ctxBulkMove = document.getElementById('ctx-bulk-move');
+  const ctxBulkDelete = document.getElementById('ctx-bulk-delete');
+  const ctxSep1 = document.getElementById('ctx-sep-1');
 
-  if (itemType === 'folder') {
-    ctxNewFile.style.display = '';
-    ctxNewFolder.style.display = '';
-    ctxRename.style.display = '';
-    ctxMove.style.display = '';
-  } else {
+  const isBulk = selectedPaths.size > 1;
+
+  if (isBulk) {
+    // ── Bulk mode ──────────────────────────────────────────────
     ctxNewFile.style.display = 'none';
     ctxNewFolder.style.display = 'none';
-    ctxRename.style.display = '';
-    ctxMove.style.display = '';
+    ctxRename.style.display = 'none';
+    ctxMove.style.display = 'none';
+    ctxDelete.style.display = 'none';
+    ctxSep1.style.display = 'none';
+
+    ctxBulkInfo.style.display = '';
+    ctxBulkInfo.textContent = `${selectedPaths.size} öğe seçildi`;
+    ctxBulkMove.style.display = '';
+    ctxBulkDelete.style.display = '';
+  } else {
+    // ── Single mode ────────────────────────────────────────────
+    ctxBulkInfo.style.display = 'none';
+    ctxBulkMove.style.display = 'none';
+    ctxBulkDelete.style.display = 'none';
+
+    if (itemType === 'folder') {
+      ctxNewFile.style.display = '';
+      ctxNewFolder.style.display = '';
+      ctxRename.style.display = '';
+      ctxMove.style.display = '';
+      ctxSep1.style.display = '';
+    } else {
+      ctxNewFile.style.display = 'none';
+      ctxNewFolder.style.display = 'none';
+      ctxRename.style.display = '';
+      ctxMove.style.display = '';
+      ctxSep1.style.display = '';
+    }
+    ctxDelete.style.display = '';
   }
 
   menu.style.display = 'block';
@@ -153,7 +186,8 @@ export function ctxRename() {
 export function ctxMove() {
   document.getElementById('context-menu').style.display = 'none';
   setMoveSourcePath(ctxTargetPath);
-  showMoveModal();
+  setMoveSourcePaths([]);
+  showMoveModal(false);
 }
 
 export function ctxDelete() {
@@ -175,8 +209,54 @@ export function ctxDelete() {
     });
 }
 
+// ─── Bulk Actions ───────────────────────────────────────────────────
+export async function ctxBulkDelete() {
+  document.getElementById('context-menu').style.display = 'none';
+  const paths = [...selectedPaths];
+  if (paths.length === 0) return;
+  if (!confirm(`${paths.length} öğeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+
+  try {
+    const res = await fetch('/api/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths })
+    });
+    const data = await res.json();
+
+    // Close editor if current file was deleted
+    if (currentFilePath && paths.includes(currentFilePath)) {
+      clearDraft(currentFilePath);
+      setActiveTabPath(null);
+      document.getElementById('editor-view').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'flex';
+    }
+
+    clearSelection();
+    await refreshTree();
+
+    if (data.failed && data.failed.length > 0) {
+      showToast(`${paths.length - data.failed.length} dosya silindi, ${data.failed.length} tanesi başarısız.`, { type: 'warning' });
+    } else {
+      showToast(`${paths.length} öğe silindi.`, { type: 'success' });
+    }
+  } catch (err) {
+    console.error('Bulk delete error:', err);
+    showToast('Toplu silme hatası: ' + err.message, { type: 'error' });
+  }
+}
+
+export function ctxBulkMove() {
+  document.getElementById('context-menu').style.display = 'none';
+  const paths = [...selectedPaths];
+  if (paths.length === 0) return;
+  setMoveSourcePaths(paths);
+  setMoveSourcePath(null);
+  showMoveModal(true);
+}
+
 // ─── Move Modal ─────────────────────────────────────────────────────
-async function showMoveModal() {
+async function showMoveModal(isBulk) {
   try {
     const res = await fetch('/api/tree');
     const data = await res.json();
@@ -184,6 +264,14 @@ async function showMoveModal() {
     setMoveSelectedFolder('');
     const container = document.getElementById('move-tree');
     container.innerHTML = '';
+
+    // Update modal title based on bulk mode
+    const h3 = document.querySelector('#move-modal h3');
+    if (h3) {
+      h3.textContent = isBulk
+        ? `${[...selectedPaths].length} Öğeyi Taşı — Hedef Seç`
+        : 'Taşıma Hedefi Seç';
+    }
 
     const rootItem = document.createElement('div');
     rootItem.className = 'move-tree-item selected';
@@ -195,14 +283,14 @@ async function showMoveModal() {
     });
     container.appendChild(rootItem);
 
-    renderMoveTree(data.tree, container, 0);
+    renderMoveTree(data.tree, container, 0, isBulk);
     document.getElementById('move-modal-overlay').style.display = 'flex';
   } catch (err) {
     console.error('Move modal error:', err);
   }
 }
 
-function renderMoveTree(items, container, depth) {
+function renderMoveTree(items, container, depth, isBulk) {
   for (const item of items) {
     if (item.type !== 'folder') continue;
 
@@ -210,7 +298,10 @@ function renderMoveTree(items, container, depth) {
     row.className = 'move-tree-item';
     row.style.paddingLeft = (12 + depth * 16) + 'px';
 
-    if (item.path === moveSourcePath || (moveSourcePath && item.path.startsWith(moveSourcePath + '/'))) {
+    // Gray out source paths
+    const sourcePaths = isBulk ? [...selectedPaths] : (moveSourcePath ? [moveSourcePath] : []);
+    const isSource = sourcePaths.some(sp => item.path === sp || item.path.startsWith(sp + '/'));
+    if (isSource) {
       row.style.opacity = '0.3';
       row.style.pointerEvents = 'none';
     }
@@ -249,12 +340,50 @@ function renderMoveTree(items, container, depth) {
     container.appendChild(row);
     container.appendChild(children);
 
-    renderMoveTree(item.children, children, depth + 1);
+    renderMoveTree(item.children, children, depth + 1, isBulk);
   }
 }
 
 export async function moveModalOk() {
   document.getElementById('move-modal-overlay').style.display = 'none';
+
+  // Bulk move
+  if (moveSourcePaths && moveSourcePaths.length > 0) {
+    try {
+      const { moveSelectedFolder: targetFolder } = await import('./state.js');
+      const res = await fetch('/api/bulk-move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: moveSourcePaths, targetFolder: targetFolder || '' })
+      });
+      const data = await res.json();
+
+      // Update current file path if it was moved
+      if (currentFilePath && moveSourcePaths.includes(currentFilePath) && data.results) {
+        const match = data.results.find(r => r.old === currentFilePath);
+        if (match) {
+          setActiveTabPath(match.new);
+          document.getElementById('file-path-display').textContent = match.new;
+        }
+      }
+
+      clearSelection();
+      setMoveSourcePaths([]);
+      await refreshTree();
+
+      if (data.failed && data.failed.length > 0) {
+        showToast(`${moveSourcePaths.length - data.failed.length} taşındı, ${data.failed.length} başarısız.`, { type: 'warning' });
+      } else {
+        showToast(`${moveSourcePaths.length} öğe taşındı.`, { type: 'success' });
+      }
+    } catch (err) {
+      console.error('Bulk move error:', err);
+      showToast('Toplu taşıma hatası: ' + err.message, { type: 'error' });
+    }
+    return;
+  }
+
+  // Single move
   if (!moveSourcePath) return;
   await moveFileTo(moveSourcePath, moveSelectedFolder);
   setMoveSourcePath(null);
@@ -263,6 +392,7 @@ export async function moveModalOk() {
 export function moveModalCancel() {
   document.getElementById('move-modal-overlay').style.display = 'none';
   setMoveSourcePath(null);
+  setMoveSourcePaths([]);
 }
 
 export async function moveFileTo(sourcePath, targetFolder) {
@@ -287,5 +417,37 @@ export async function moveFileTo(sourcePath, targetFolder) {
   } catch (err) {
     console.error('Move error:', err);
     alert('Taşıma hatası: ' + err.message);
+  }
+}
+
+/** Bulk move via drag-drop (no modal) */
+export async function bulkMoveFiles(paths, targetFolder) {
+  try {
+    const res = await fetch('/api/bulk-move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths, targetFolder: targetFolder || '' })
+    });
+    const data = await res.json();
+
+    if (currentFilePath && paths.includes(currentFilePath) && data.results) {
+      const match = data.results.find(r => r.old === currentFilePath);
+      if (match) {
+        setActiveTabPath(match.new);
+        document.getElementById('file-path-display').textContent = match.new;
+      }
+    }
+
+    clearSelection();
+    await refreshTree();
+
+    if (data.failed && data.failed.length > 0) {
+      showToast(`${paths.length - data.failed.length} taşındı, ${data.failed.length} başarısız.`, { type: 'warning' });
+    } else {
+      showToast(`${paths.length} öğe taşındı.`, { type: 'success' });
+    }
+  } catch (err) {
+    console.error('Bulk drag-drop move error:', err);
+    showToast('Toplu taşıma hatası: ' + err.message, { type: 'error' });
   }
 }

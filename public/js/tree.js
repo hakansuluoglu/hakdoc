@@ -1,11 +1,12 @@
 // ─── File Tree ──────────────────────────────────────────────────────
 import {
   expandedFolders, addExpandedFolder, removeExpandedFolder,
-  currentFilePath, setCtxTarget
+  currentFilePath,
+  selectedPaths, lastClickedPath,
+  addSelectedPath, removeSelectedPath, clearSelection, setLastClickedPath
 } from './state.js';
 import { loadFile } from './editor.js';
-import { showContextMenu } from './modals.js';
-import { moveFileTo } from './modals.js';
+import { showContextMenu, moveFileTo, bulkMoveFiles } from './modals.js';
 
 export async function refreshTree() {
   try {
@@ -34,8 +35,40 @@ export async function refreshTree() {
         if (icon) icon.innerHTML = '<i class="fas fa-folder-open"></i>';
       }
     });
+
+    // Re-apply selection highlights
+    reapplySelection();
   } catch (err) {
     console.error('Tree refresh error:', err);
+  }
+}
+
+/** Re-highlight rows that are in selectedPaths */
+export function reapplySelection() {
+  document.querySelectorAll('.tree-item[data-type="file"]').forEach(row => {
+    if (selectedPaths.has(row.dataset.path)) {
+      row.classList.add('tree-selected');
+    } else {
+      row.classList.remove('tree-selected');
+    }
+  });
+}
+
+/** Returns all visible file rows in DOM order */
+function getAllFileRows() {
+  return [...document.querySelectorAll('.tree-item[data-type="file"]')];
+}
+
+/** Select a range between lastClickedPath and targetPath (inclusive) */
+function rangeSelect(targetPath) {
+  const rows = getAllFileRows();
+  const idx1 = rows.findIndex(r => r.dataset.path === lastClickedPath);
+  const idx2 = rows.findIndex(r => r.dataset.path === targetPath);
+  if (idx1 === -1 || idx2 === -1) return;
+  const from = Math.min(idx1, idx2);
+  const to = Math.max(idx1, idx2);
+  for (let i = from; i <= to; i++) {
+    addSelectedPath(rows[i].dataset.path);
   }
 }
 
@@ -67,7 +100,8 @@ function renderTree(items, container, depth) {
       row.dataset.type = 'folder';
       row.draggable = false;
 
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        // Folder clicks: just toggle expand, don't affect file selection
         const children = wrapper.querySelector('.tree-children');
         const isOpen = children.classList.contains('open');
         chevron.classList.toggle('open', !isOpen);
@@ -98,9 +132,23 @@ function renderTree(items, container, depth) {
       row.addEventListener('drop', (e) => {
         e.preventDefault();
         row.classList.remove('drag-over');
-        const srcPath = e.dataTransfer.getData('text/plain');
-        if (srcPath && srcPath !== item.path) {
-          moveFileTo(srcPath, item.path);
+        const bulkData = e.dataTransfer.getData('application/x-bulk-paths');
+        if (bulkData) {
+          // Bulk drag-drop
+          try {
+            const paths = JSON.parse(bulkData);
+            if (paths.length > 0) {
+              bulkMoveFiles(paths, item.path);
+            }
+          } catch (err) {
+            console.error('Bulk drop parse error:', err);
+          }
+        } else {
+          // Single drag-drop
+          const srcPath = e.dataTransfer.getData('text/plain');
+          if (srcPath && srcPath !== item.path) {
+            moveFileTo(srcPath, item.path);
+          }
         }
       });
 
@@ -110,7 +158,9 @@ function renderTree(items, container, depth) {
       children.className = 'tree-children';
       renderTree(item.children, children, depth + 1);
       wrapper.appendChild(children);
+
     } else {
+      // ── File row ──────────────────────────────────────────────
       const chevron = document.createElement('span');
       chevron.className = 'chevron hidden';
       chevron.innerHTML = '<i class="fas fa-chevron-right"></i>';
@@ -153,28 +203,95 @@ function renderTree(items, container, depth) {
       name.textContent = item.name;
       row.appendChild(name);
 
+      // ── Quick-delete button ────────────────────────────────────
+      const quickDelete = document.createElement('button');
+      quickDelete.className = 'quick-delete-btn';
+      quickDelete.title = 'Hızlı Sil';
+      quickDelete.innerHTML = '<i class="fas fa-trash-alt"></i>';
+      quickDelete.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm(`"${item.name}" dosyasını silmek istediğinize emin misiniz?`)) return;
+        await fetch('/api/file?path=' + encodeURIComponent(item.path), { method: 'DELETE' });
+        // If this was the open file, close editor
+        if (currentFilePath === item.path) {
+          const { setActiveTabPath, clearDraft } = await import('./state.js');
+          clearDraft(item.path);
+          setActiveTabPath(null);
+          document.getElementById('editor-view').style.display = 'none';
+          document.getElementById('empty-state').style.display = 'flex';
+        }
+        refreshTree();
+      });
+      row.appendChild(quickDelete);
+
       row.dataset.path = item.path;
       row.dataset.type = 'file';
       row.draggable = true;
 
+      // ── Drag ──────────────────────────────────────────────────
       row.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', item.path);
+        // If dragged item is part of a multi-selection, drag all selected
+        if (selectedPaths.size > 1 && selectedPaths.has(item.path)) {
+          e.dataTransfer.setData('application/x-bulk-paths', JSON.stringify([...selectedPaths]));
+        } else {
+          e.dataTransfer.setData('text/plain', item.path);
+        }
         e.dataTransfer.effectAllowed = 'move';
         row.classList.add('dragging');
+        // Dim all selected rows while dragging
+        if (selectedPaths.size > 1 && selectedPaths.has(item.path)) {
+          document.querySelectorAll('.tree-item.tree-selected').forEach(el => el.classList.add('dragging'));
+        }
       });
 
       row.addEventListener('dragend', () => {
         row.classList.remove('dragging');
+        document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
       });
 
-      row.addEventListener('click', () => {
+      // ── Click: multi-select logic ──────────────────────────────
+      row.addEventListener('click', (e) => {
+        if (e.shiftKey && lastClickedPath) {
+          // Shift-range select — don't clear existing selection
+          rangeSelect(item.path);
+          reapplySelection();
+          // Don't load file on shift-select
+          return;
+        }
+
+        if (e.metaKey || e.ctrlKey) {
+          // Cmd/Ctrl toggle
+          if (selectedPaths.has(item.path)) {
+            removeSelectedPath(item.path);
+            row.classList.remove('tree-selected');
+          } else {
+            addSelectedPath(item.path);
+            row.classList.add('tree-selected');
+          }
+          setLastClickedPath(item.path);
+          return;
+        }
+
+        // Normal click: clear selection, open file
+        clearSelection();
+        document.querySelectorAll('.tree-item.tree-selected').forEach(el => el.classList.remove('tree-selected'));
         loadFile(item.path);
         highlightActive(row);
+        setLastClickedPath(item.path);
       });
 
+      // ── Right-click ───────────────────────────────────────────
       row.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        // If this item is not in current selection, reset selection to just this item
+        if (!selectedPaths.has(item.path)) {
+          clearSelection();
+          document.querySelectorAll('.tree-item.tree-selected').forEach(el => el.classList.remove('tree-selected'));
+          addSelectedPath(item.path);
+          row.classList.add('tree-selected');
+          setLastClickedPath(item.path);
+        }
         showContextMenu(e, item.path, 'file');
       });
 

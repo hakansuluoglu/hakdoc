@@ -246,6 +246,79 @@ app.get('/api/search', (req, res) => {
   }
 });
 
+app.post('/api/bulk-delete', (req, res) => {
+  try {
+    const { paths } = req.body;
+    if (!Array.isArray(paths) || paths.length === 0) {
+      return res.status(400).json({ error: 'paths array required' });
+    }
+    const failed = [];
+    for (const p of paths) {
+      try {
+        const fullPath = path.join(DOCS_ROOT, p);
+        if (!fullPath.startsWith(DOCS_ROOT)) { failed.push(p); continue; }
+        if (fs.existsSync(fullPath)) {
+          const stat = fs.statSync(fullPath);
+          if (stat.isDirectory()) {
+            fs.rmSync(fullPath, { recursive: true });
+          } else {
+            fs.unlinkSync(fullPath);
+          }
+        }
+      } catch (e) {
+        failed.push(p);
+      }
+    }
+    res.json({ success: true, failed });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/bulk-move', (req, res) => {
+  try {
+    const { paths, targetFolder } = req.body;
+    if (!Array.isArray(paths) || paths.length === 0) {
+      return res.status(400).json({ error: 'paths array required' });
+    }
+    const fullTargetDir = path.join(DOCS_ROOT, targetFolder || '');
+    if (!fullTargetDir.startsWith(DOCS_ROOT)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!fs.existsSync(fullTargetDir) || !fs.statSync(fullTargetDir).isDirectory()) {
+      return res.status(400).json({ error: 'Target is not a folder' });
+    }
+    const results = [];
+    const failed = [];
+    for (const p of paths) {
+      try {
+        const fullSource = path.join(DOCS_ROOT, p);
+        if (!fullSource.startsWith(DOCS_ROOT)) { failed.push(p); continue; }
+        if (!fs.existsSync(fullSource)) { failed.push(p); continue; }
+        const baseName = path.basename(fullSource);
+        let fullDest = path.join(fullTargetDir, baseName);
+        // handle name conflicts with suffix
+        if (fs.existsSync(fullDest)) {
+          const ext = path.extname(baseName);
+          const nameWithout = path.basename(baseName, ext);
+          let i = 2;
+          while (fs.existsSync(fullDest)) {
+            fullDest = path.join(fullTargetDir, `${nameWithout}_${i}${ext}`);
+            i++;
+          }
+        }
+        fs.renameSync(fullSource, fullDest);
+        results.push({ old: p, new: path.relative(DOCS_ROOT, fullDest) });
+      } catch (e) {
+        failed.push(p);
+      }
+    }
+    res.json({ success: true, results, failed });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n  DocWebApp running at http://localhost:${PORT}\n`);
   console.log(`  Serving docs from: ${DOCS_ROOT}\n`);

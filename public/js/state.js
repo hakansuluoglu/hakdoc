@@ -9,9 +9,14 @@ export let modalCallback = null;
 export let ctxTargetPath = null;
 export let ctxTargetType = null;
 export let moveSourcePath = null;
+export let moveSourcePaths = []; // bulk move paths
 export let moveSelectedFolder = null;
 export let moveTreeData = null;
 export let expandedFolders = new Set();
+
+// ─── Multi-Select State ─────────────────────────────────────────────
+export let selectedPaths = new Set();
+export let lastClickedPath = null;
 
 // ─── State Setters ──────────────────────────────────────────────────
 export function setSidebarCollapsed(val) {
@@ -66,12 +71,38 @@ export function setMoveSourcePath(val) {
   moveSourcePath = val;
 }
 
+export function setMoveSourcePaths(paths) {
+  moveSourcePaths = paths;
+}
+
 export function setMoveSelectedFolder(val) {
   moveSelectedFolder = val;
 }
 
 export function setMoveTreeData(val) {
   moveTreeData = val;
+}
+
+// ─── Multi-Select Setters ────────────────────────────────────────────
+export function addSelectedPath(path) {
+  selectedPaths.add(path);
+}
+
+export function removeSelectedPath(path) {
+  selectedPaths.delete(path);
+}
+
+export function clearSelection() {
+  selectedPaths.clear();
+  lastClickedPath = null;
+}
+
+export function setSelectedPaths(paths) {
+  selectedPaths = new Set(paths);
+}
+
+export function setLastClickedPath(path) {
+  lastClickedPath = path;
 }
 
 // ─── Expanded Folders Persistence ───────────────────────────────────

@@ -34,7 +34,10 @@ DOCS_ROOT=/path/to/docs npm start
 - [x] Dosya düzenleme + format toolbar (bold, italic, heading, code, table, checklist vb.)
 - [x] Yeni dosya/klasör oluşturma
 - [x] Sağ tıklama context menüsü (yeniden adlandır, sil, taşı)
-- [x] Drag & drop ile dosya taşıma
+- [x] Dosya üzerinde hızlı silme butonu (hover'da çöp kutusu ikonu)
+- [x] Multi-select: Shift ile aralık seçimi, Cmd/Ctrl ile tekli seçim
+- [x] Toplu işlemler: Seçili dosyaları sağ tıkla toplu sil / toplu taşı
+- [x] Drag & drop ile dosya taşıma (tekli ve çoklu seçim destekli)
 - [x] Klasör silme (recursive)
 - [x] Sublime Text ile düzenleme senkronu (sekme focus'unda otomatik yenile)
 - [x] Cmd+S ile kaydetme
@@ -47,9 +50,9 @@ DOCS_ROOT=/path/to/docs npm start
 - [x] Footnote, superscript, subscript format desteği
 - [x] Heading level cycling (H1 → H2 → H3 → H4 → plain text)
 - [x] Modüler mimari (ES Modules)
-- [ ] Arama
-- [ ] Multi-tab / birden fazla dosya açık tutma
-- [ ] Dosya yükleme (drag & drop file upload)
+- [x] Arama
+- [x] Multi-tab / birden fazla dosya açık tutma
+- [x] Dosya yükleme (drag & drop file upload)
 - [ ] Export (PDF, HTML)
 
 ## Proje Yapısı

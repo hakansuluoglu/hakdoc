@@ -139,6 +139,11 @@ body {
   color: var(--accent);
 }
 
+.tree-item.tree-selected {
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--text-primary);
+}
+
 .tree-item .icon {
   width: 18px;
   text-align: center;
@@ -176,6 +181,28 @@ body {
 .tree-item .name {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.quick-delete-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-left: auto;
+  font-size: 12px;
+  transition: all 0.15s;
+  border-radius: 4px;
+}
+
+.tree-item:hover .quick-delete-btn {
+  opacity: 1;
+}
+
+.quick-delete-btn:hover {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--red);
 }
 
 .tree-children {
@@ -739,6 +766,14 @@ body {
   height: 1px;
   background: var(--border);
   margin: 4px 0;
+}
+
+.ctx-info-label {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 
 .tree-item.drag-over {

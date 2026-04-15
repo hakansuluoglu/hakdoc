@@ -109,9 +109,14 @@
   </div>
 
   <div id="context-menu" style="display:none">
+    <!-- Bulk mode -->
+    <div id="ctx-bulk-info" class="ctx-info-label" style="display:none"></div>
+    <button id="ctx-bulk-move" onclick="ctxBulkMove()" style="display:none"><i class="fas fa-arrows-alt"></i> Seçilileri Taşı...</button>
+    <button id="ctx-bulk-delete" onclick="ctxBulkDelete()" class="ctx-danger" style="display:none"><i class="fas fa-trash"></i> Seçilileri Sil</button>
+    <!-- Single mode -->
     <button id="ctx-new-file" onclick="ctxNewFile()"><i class="fas fa-file-circle-plus"></i> Yeni Dosya</button>
     <button id="ctx-new-folder" onclick="ctxNewFolder()"><i class="fas fa-folder-plus"></i> Yeni Klasör</button>
-    <div class="ctx-sep"></div>
+    <div id="ctx-sep-1" class="ctx-sep"></div>
     <button id="ctx-rename" onclick="ctxRename()"><i class="fas fa-pen"></i> Yeniden Adlandır</button>
     <button id="ctx-move" onclick="ctxMove()"><i class="fas fa-arrows-alt"></i> Taşı...</button>
     <div class="ctx-sep"></div>
