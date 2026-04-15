@@ -32,11 +32,17 @@
     "targets": "all",
     "resources": {
       "server-dist/server.js": "server.js",
-      "server-dist/package.json": "package.json",
-      "server-dist/ai/prompts.js": "ai/prompts.js",
-      "server-dist/ai/provider.js": "ai/provider.js",
-      "server-dist/ai/routes.js": "ai/routes.js",
-      "server-dist/node_modules/**/*": "node_modules/"
+      "server-dist/public/index.html": "public/index.html",
+      "server-dist/public/style.css": "public/style.css",
+      "server-dist/public/favicon.png": "public/favicon.png",
+      "server-dist/public/js/ai.js": "public/js/ai.js",
+      "server-dist/public/js/app.js": "public/js/app.js",
+      "server-dist/public/js/editor.js": "public/js/editor.js",
+      "server-dist/public/js/modals.js": "public/js/modals.js",
+      "server-dist/public/js/settings.js": "public/js/settings.js",
+      "server-dist/public/js/state.js": "public/js/state.js",
+      "server-dist/public/js/tree.js": "public/js/tree.js",
+      "server-dist/public/js/utils.js": "public/js/utils.js"
     },
     "icon": [
       "icons/32x32.png",

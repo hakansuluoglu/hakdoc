@@ -6,4 +6,15 @@ docs/
 
 # Tauri build artifacts
 src-tauri/target/
+node_modules/
+.DS_Store
+.claude/
+docs/
+.env
+
+# Tauri build artifacts
+src-tauri/target/
 src-tauri/server-dist/
+
+# Shell scripts
+*.command
