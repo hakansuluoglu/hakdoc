@@ -14,6 +14,20 @@ export let moveSelectedFolder = null;
 export let moveTreeData = null;
 export let expandedFolders = new Set();
 
+// ─── AI State ───────────────────────────────────────────────────────
+export let aiEnabled = false;
+export let aiProviderName = null;
+export let aiModelName = null;
+
+export function setAiEnabled(val) {
+  aiEnabled = val;
+}
+
+export function setAiStatus(provider, model) {
+  aiProviderName = provider;
+  aiModelName = model;
+}
+
 // ─── Multi-Select State ─────────────────────────────────────────────
 export let selectedPaths = new Set();
 export let lastClickedPath = null;

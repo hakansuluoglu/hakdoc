@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -13,6 +15,10 @@ const upload = multer({ dest: path.join(os.tmpdir(), 'docwebapp_uploads') });
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/raw', express.static(DOCS_ROOT));
+
+// ─── AI Route'lari ───────────────────────────────────────────────────────────
+const aiRoutes = require('./ai/routes');
+app.use('/api/ai', aiRoutes);
 
 function isHidden(name) {
   return name.startsWith('.') || name === 'DocWebApp';

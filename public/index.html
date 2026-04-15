@@ -51,6 +51,7 @@
             <button id="btn-edit" onclick="toggleEdit()" title="Düzenle"><i class="fas fa-pen"></i></button>
             <button id="btn-save" onclick="saveFile()" title="Kaydet" style="display:none"><i class="fas fa-save"></i></button>
             <button id="btn-copy" onclick="copyDocument()" title="Tümünü Kopyala"><i class="fas fa-copy"></i></button>
+            <button id="btn-ai-summarize" class="ai-feature" onclick="aiSummarize()" title="AI Ozet"><i class="fas fa-robot"></i></button>
             <button id="btn-delete" onclick="deleteCurrent()" title="Sil"><i class="fas fa-trash"></i></button>
           </div>
         </div>
@@ -86,6 +87,35 @@
         <iframe id="pdf-viewer" style="display:none" width="100%" height="100%" style="border:none;" title="PDF Preview"></iframe>
       </div>
     </main>
+
+    <!-- AI Panel — sidebar gibi flex child, dokümani sola iter -->
+    <div id="ai-panel" class="ai-panel-collapsed">
+      <div id="ai-panel-header">
+        <div id="ai-panel-title">
+          <i class="fas fa-robot"></i>
+          <span>AI Ozet</span>
+          <span id="ai-panel-model-info"></span>
+        </div>
+        <button id="ai-panel-close-btn" onclick="closeAIPanel()" title="Kapat"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="ai-panel-cache-bar" style="display:none">
+        <i class="fas fa-clock"></i>
+        <span>Onceki ozet: <span id="ai-panel-cache-date"></span></span>
+        <button id="ai-panel-refresh-btn" onclick="aiRefreshSummary()" title="Yeni ozet olustur"><i class="fas fa-redo"></i> Yenile</button>
+      </div>
+      <div id="ai-panel-body">
+        <div id="ai-panel-loading" style="display:none">
+          <div class="ai-spinner"></div>
+          <span>Ozet hazirlaniyor...</span>
+        </div>
+        <div id="ai-panel-error" style="display:none"></div>
+        <div id="ai-panel-content" style="display:none"></div>
+      </div>
+      <div id="ai-panel-footer">
+        <button id="ai-panel-copy-btn" onclick="copyAISummary()" title="Kopyala"><i class="fas fa-copy"></i> Kopyala</button>
+        <button id="ai-panel-close-footer-btn" onclick="closeAIPanel()"><i class="fas fa-times"></i> Kapat</button>
+      </div>
+    </div>
   </div>
 
   <div id="modal-overlay" style="display:none">

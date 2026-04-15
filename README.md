@@ -24,6 +24,19 @@ Tarayıcıda http://localhost:14296 açılır.
 DOCS_ROOT=/path/to/docs npm start
 ```
 
+### AI Özellikleri (Opsiyonel)
+
+AI özelliklerini etkinleştirmek için `.env` dosyası oluştur (`.env.example` şablonu mevcuttur):
+
+```bash
+cp .env.example .env
+# .env dosyasını düzenleyip API key'i ekle
+```
+
+AI provider tanımlanmazsa tüm AI butonları otomatik olarak gizlenir.
+
+Desteklenen providerlar: `zhipu` (Z.AI), `openai`, `google`, `anthropic`, `ollama`, `lmstudio`, `deepseek`, `openrouter`
+
 ## Özellikler
 
 - [x] Gece modu (GitHub dark tema)
@@ -53,6 +66,11 @@ DOCS_ROOT=/path/to/docs npm start
 - [x] Arama
 - [x] Multi-tab / birden fazla dosya açık tutma
 - [x] Dosya yükleme (drag & drop file upload)
+- [x] **AI Özet** — aktif dosyayı AI ile özetler, sağ panelde streaming olarak gösterir
+  - Özet localStorage'a kaydedilir (dosya yolu + tarih/saat bazlı)
+  - Tekrar açıldığında cache'den anında yüklenir, API isteği yapılmaz
+  - "Yenile" butonu ile yeni özet tetiklenebilir
+  - Panel dokümanın yanında açılır, içeriği overlay etmez (sidebar gibi davranır)
 - [ ] Export (PDF, HTML)
 
 ## Proje Yapısı
@@ -61,12 +79,18 @@ DOCS_ROOT=/path/to/docs npm start
 DocWebApp/
 ├── server.js              # Express sunucu (API endpoints)
 ├── package.json
+├── .env.example           # AI provider konfigürasyon şablonu
+├── ai/
+│   ├── provider.js        # AI provider factory (Vercel AI SDK)
+│   ├── prompts.js         # Sistem promptları ve şablonlar
+│   └── routes.js          # AI API route'ları (/api/ai/*)
 ├── public/
 │   ├── index.html         # Ana HTML
 │   ├── style.css          # Tüm stiller
 │   └── js/
 │       ├── app.js         # Entry point, init, keyboard shortcuts
 │       ├── state.js       # Global state, localStorage, draft management
+│       ├── ai.js          # AI frontend modülü (cache, SSE, panel yönetimi)
 │       ├── tree.js        # Dosya ağacı render, drag & drop
 │       ├── editor.js      # Dosya yükleme, düzenleme, format toolbar
 │       ├── modals.js      # Modal, context menü, taşıma

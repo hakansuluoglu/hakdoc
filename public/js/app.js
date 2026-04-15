@@ -14,6 +14,7 @@ import {
   ctxBulkDelete, ctxBulkMove,
   moveModalOk, moveModalCancel
 } from './modals.js';
+import { initAI, aiSummarize, aiRefreshSummary, closeAIPanel, copyAISummary } from './ai.js';
 
 // ─── Expose functions to window for onclick handlers ────────────────
 globalThis.toggleEdit = toggleEdit;
@@ -34,6 +35,10 @@ globalThis.ctxBulkDelete = ctxBulkDelete;
 globalThis.ctxBulkMove = ctxBulkMove;
 globalThis.moveModalOk = moveModalOk;
 globalThis.moveModalCancel = moveModalCancel;
+globalThis.aiSummarize = aiSummarize;
+globalThis.aiRefreshSummary = aiRefreshSummary;
+globalThis.closeAIPanel = closeAIPanel;
+globalThis.copyAISummary = copyAISummary;
 
 // ─── Initialization ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -45,6 +50,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   restoreExpandedFolders();
   restoreSidebarState();
   restoreOpenTabs();
+
+  // AI durumunu kontrol et (hata durumunda sessizce devam eder)
+  await initAI();
 
   // Load file tree
   await refreshTree();
