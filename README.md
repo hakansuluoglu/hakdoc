@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/hakansuluoglu/Hakdoc?style=for-the-badge&color=blue" alt="Latest Release"></a>&nbsp;
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/hakansuluoglu/Hakdoc?style=for-the-badge&color=blue&cache=123" alt="Latest Release"></a>&nbsp;
   <img src="https://img.shields.io/badge/platform-macOS-lightgrey?style=for-the-badge&logo=apple" alt="macOS">&nbsp;
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License">
 </p>
