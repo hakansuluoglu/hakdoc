@@ -33,7 +33,7 @@ If you work with AI coding tools across multiple repositories, you know this cyc
 
 **Now you need a way to actually _read_ those files.** VS Code's Markdown preview is clunky for this. You want a fast, distraction-free viewer with a proper file tree — one that works on a single shared folder across all your projects.
 
-That's why HakDoc exists.
+That's why HakDoc exists
 
 ---
 
